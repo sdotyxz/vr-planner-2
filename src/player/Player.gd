@@ -5,16 +5,36 @@ class_name Player
 @export var mouse_sensitivity: float = 0.003
 @export var max_distance: float = 100.0
 
+## 相机旋转限制配置
+@export_group("Camera Limits")
+@export var yaw_limit: float = 90.0  ## Yaw 限制角度（左右各一半）
+@export var pitch_limit: float = 60.0  ## Pitch 限制角度（上下各一半）
+@export var enable_yaw_limit: bool = true  ## 是否启用 Yaw 限制
+@export var enable_pitch_limit: bool = true  ## 是否启用 Pitch 限制
+
+## 相机视野配置
+@export_group("Camera FOV")
+@export_range(30.0, 120.0, 1.0) var camera_fov: float = 80.0  ## 相机视野角度
+
 @onready var camera: Camera3D = $Camera3D
 
 var yaw: float = 0.0
 var pitch: float = 0.0
+var _initial_yaw: float = 0.0  # 记录初始朝向，用于 yaw 限制的中心点
 var _shot_this_frame: bool = false
+var can_control: bool = false  # 是否允许开火和转动视角
 
 
 func _ready() -> void:
 	print("Player: Ready")
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	
+	# 设置相机 FOV
+	if camera:
+		camera.fov = camera_fov
+	
+	# 记录初始朝向作为 yaw 限制的中心点
+	_initial_yaw = yaw
 	
 	# 连接全局输入处理器的鼠标移动信号
 	var input_handler = get_node_or_null("/root/InputHandler")
@@ -26,14 +46,14 @@ func _ready() -> void:
 
 
 func _on_mouse_motion(relative: Vector2) -> void:
-	# print("Player: Motion received ", relative)
+	if not can_control:
+		return
 	_rotate_camera(relative)
 
 
 func _input(event: InputEvent) -> void:
 	# 后备：直接处理鼠标移动
-	if event is InputEventMouseMotion:
-		# print("Player: Direct input motion ", event.relative)
+	if event is InputEventMouseMotion and can_control:
 		_rotate_camera(event.relative)
 		
 	# ESC 释放鼠标
@@ -47,7 +67,35 @@ func _input(event: InputEvent) -> void:
 func _rotate_camera(relative: Vector2) -> void:
 	yaw -= relative.x * mouse_sensitivity
 	pitch -= relative.y * mouse_sensitivity
-	pitch = clampf(pitch, -deg_to_rad(89), deg_to_rad(89))
+	
+	# 应用 Yaw 限制（左右旋转）
+	if enable_yaw_limit:
+		var half_yaw := deg_to_rad(yaw_limit / 2.0)
+		yaw = clampf(yaw, _initial_yaw - half_yaw, _initial_yaw + half_yaw)
+	
+	# 应用 Pitch 限制（上下旋转）
+	if enable_pitch_limit:
+		var half_pitch := deg_to_rad(pitch_limit / 2.0)
+		pitch = clampf(pitch, -half_pitch, half_pitch)
+	else:
+		# 即使不限制也要防止翻转
+		pitch = clampf(pitch, -deg_to_rad(89), deg_to_rad(89))
+
+
+## 重置视角到初始状态
+func reset_view() -> void:
+	yaw = _initial_yaw
+	pitch = 0.0
+
+
+## 启用控制（开火和转动视角）
+func enable_control() -> void:
+	can_control = true
+
+
+## 禁用控制
+func disable_control() -> void:
+	can_control = false
 
 
 func _physics_process(_delta: float) -> void:
@@ -62,8 +110,8 @@ func _physics_process(_delta: float) -> void:
 		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	
-	# 射击检测
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+	# 射击检测（仅在允许控制时）
+	if can_control and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		if not _shot_this_frame:
 			_shot_this_frame = true
 			_shoot()

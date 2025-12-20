@@ -8,18 +8,14 @@ roughness = 0.7
 
 [sub_resource type="BoxMesh" id="BoxMesh_door"]
 material = SubResource("StandardMaterial3D_door")
-size = Vector3(1.2, 2.5, 0.1)
+size = Vector3(2.0, 2.5, 0.1)
 
 [node name="Door" type="Node3D"]
 script = ExtResource("1_script")
 
-[node name="Frame" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0)
+[node name="DoorPivot" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0, 0, 0)
 
-[node name="LeftDoor" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 1.25, 0)
-mesh = SubResource("BoxMesh_door")
-
-[node name="RightDoor" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 1.25, 0)
+[node name="DoorMesh" type="MeshInstance3D" parent="DoorPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.0, 1.25, 0)
 mesh = SubResource("BoxMesh_door")
