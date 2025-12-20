@@ -1,3 +1,13 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# OpenSpec
+openspec/
+
+# Node.js dependencies
+mcp/godot-mcp/node_modules/
+
+# Build outputs
+mcp/godot-mcp/dist/
+mcp/godot-mcp/build/
