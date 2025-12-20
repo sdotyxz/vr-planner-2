@@ -11,3 +11,9 @@ mcp/godot-mcp/node_modules/
 # Build outputs
 mcp/godot-mcp/dist/
 mcp/godot-mcp/build/
+
+# IDE and Tools
+mcp/
+.codebuddy/
+.cursor/
+CODEBUDDY.md

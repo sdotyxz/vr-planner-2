@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3 uid="uid://breachtrigger001"]
+
+[ext_resource type="Script" path="res://src/entities/BreachTrigger.gd" id="1_script"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_breach"]
+size = Vector3(2, 2, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_debug"]
+transparency = 1
+albedo_color = Color(0, 0.5, 1, 0.3)
+
+[node name="BreachTrigger" type="Area3D"]
+script = ExtResource("1_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_breach")
+
+[node name="DebugMesh" type="CSGBox3D" parent="."]
+size = Vector3(2, 2, 2)
+material = SubResource("StandardMaterial3D_debug")

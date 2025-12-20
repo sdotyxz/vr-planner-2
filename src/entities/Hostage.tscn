@@ -1,0 +1,28 @@
+[gd_scene load_steps=5 format=3 uid="uid://chostage001"]
+
+[ext_resource type="Script" path="res://src/entities/Hostage.gd" id="1_script"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hostage"]
+albedo_color = Color(0.2, 1, 0.2, 1)
+emission_enabled = true
+emission = Color(0, 1, 0, 1)
+emission_energy_multiplier = 1.0
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hostage"]
+height = 2.0
+radius = 0.5
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_hostage"]
+material = SubResource("StandardMaterial3D_hostage")
+top_radius = 0.5
+bottom_radius = 0.5
+height = 2.0
+
+[node name="Hostage" type="StaticBody3D"]
+script = ExtResource("1_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CylinderShape3D_hostage")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("CylinderMesh_hostage")

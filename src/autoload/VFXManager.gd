@@ -1,0 +1,30 @@
+extends Node
+## VFX管理器 - 全局单例，管理粒子特效
+
+var vfx_library: Dictionary = {}
+
+
+func _ready() -> void:
+	# 预加载粒子场景
+	vfx_library["blood"] = load("res://assets/vfx/BloodSplatter.tscn")
+	vfx_library["muzzle"] = load("res://assets/vfx/MuzzleFlash.tscn")
+
+
+func spawn_vfx(vfx_name: String, pos: Vector3, normal: Vector3 = Vector3.UP) -> void:
+	if not vfx_library.has(vfx_name):
+		return
+	
+	var instance: Node3D = vfx_library[vfx_name].instantiate()
+	get_tree().root.add_child(instance)
+	instance.global_position = pos
+	
+	# 根据法线方向对齐
+	if normal != Vector3.ZERO and normal.length_squared() > 0.001:
+		var up := Vector3.UP if abs(normal.dot(Vector3.UP)) < 0.99 else Vector3.RIGHT
+		instance.look_at(pos + normal, up)
+	
+	# 启动粒子并自动销毁
+	if instance is CPUParticles3D or instance is GPUParticles3D:
+		instance.emitting = true
+		var lifetime: float = instance.lifetime if instance.lifetime > 0 else 1.0
+		get_tree().create_timer(lifetime + 0.5).timeout.connect(instance.queue_free)
