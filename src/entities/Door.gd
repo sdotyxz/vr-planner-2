@@ -4,8 +4,8 @@ class_name Door
 
 signal door_opened
 
-@export var open_duration: float = 0.5
-@export var open_angle: float = 90.0
+@export var open_duration: float = 0.2  # 加快速度，从0.5改为0.2
+@export var fall_angle: float = 90.0  # 门倒下的角度
 
 @onready var door_pivot: Node3D = $DoorPivot
 
@@ -17,11 +17,19 @@ func open() -> void:
 		return
 	is_open = true
 	
-	# 播放开门动画（以右边为轴向内旋转）
+	# 触发相机抖动效果
+	var player = get_tree().get_first_node_in_group("player")
+	if player and player.has_method("shake_camera"):
+		player.shake_camera()
+	
+	# 播放开门动画（门向前倒下）
 	var tween := create_tween()
+	tween.set_ease(Tween.EASE_IN)  # 加速倒下效果
+	tween.set_trans(Tween.TRANS_QUAD)
 	
 	if door_pivot:
-		tween.tween_property(door_pivot, "rotation_degrees:y", -open_angle, open_duration)
+		# 绕X轴旋转，使门向前倒下（远离玩家）
+		tween.tween_property(door_pivot, "rotation_degrees:x", -fall_angle, open_duration)
 	
 	await tween.finished
 	door_opened.emit()
@@ -34,4 +42,5 @@ func close() -> void:
 	
 	var tween := create_tween()
 	if door_pivot:
-		tween.tween_property(door_pivot, "rotation_degrees:y", 0.0, open_duration)
+		# 恢复到初始位置
+		tween.tween_property(door_pivot, "rotation_degrees:x", 0.0, open_duration)

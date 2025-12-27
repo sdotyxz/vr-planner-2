@@ -1,18 +1,18 @@
-[gd_scene load_steps=3 format=3 uid="uid://crailsystem001"]
+[gd_scene load_steps=3 format=3 uid="uid://d3xcfsijjem3y"]
 
-[ext_resource type="Script" path="res://src/systems/RailSystem.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dkkml4npry6qq" path="res://src/systems/RailSystem.gd" id="1_script"]
 
 [sub_resource type="Curve3D" id="Curve3D_rail"]
 _data = {
-"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, -7),
-"tilts": PackedFloat32Array(0, 0)
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, -1.9996887, 0, 0, 0, 0, 0, 0, 0, 0, -6.007208, 0, 0, 0, 0, 0, 0, 0, 0, -33.06379),
+"tilts": PackedFloat32Array(0, 0, 0, 0)
 }
-point_count = 2
+point_count = 4
 
 [node name="RailSystem" type="Path3D"]
 curve = SubResource("Curve3D_rail")
 script = ExtResource("1_script")
-door_stop_ratio = 0.5
 
 [node name="PathFollow3D" type="PathFollow3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5)
 rotation_mode = 0

@@ -3,7 +3,8 @@ class_name MainLevel
 ## 主关卡 - 轨道移动到门口 -> 开门 -> 射击 -> 清除敌人 -> 下一关
 
 @onready var rail_system: RailSystem = $RailSystem
-@onready var door: Door = $Door
+@onready var front_door: Door = $FrontDoor
+@onready var back_door: Door = $BackDoor
 @onready var entities: Node3D = $Entities
 @onready var player: Player = $Player
 @onready var hud: HUD = $UI/HUD
@@ -42,18 +43,31 @@ func _ready() -> void:
 	
 	# 连接信号
 	if rail_system:
-		rail_system.reached_door.connect(_on_reached_door)
-		rail_system.reached_end.connect(_on_reached_end)
+		rail_system.reached_waypoint1.connect(_on_reached_waypoint1)
+		rail_system.door_ready_to_open.connect(_on_door_ready_to_open)
+		rail_system.passed_door.connect(_on_passed_door)
+		rail_system.reached_waypoint2.connect(_on_reached_waypoint2)
+		rail_system.reached_waypoint3.connect(_on_reached_waypoint3)
+		rail_system.ready_to_teleport.connect(_on_ready_to_teleport)
 	
-	if door:
-		door.door_opened.connect(_on_door_opened)
+	if front_door:
+		front_door.door_opened.connect(_on_front_door_opened)
 	
-	# 禁用玩家控制
-	if player:
-		player.disable_control()
+	# 隐藏开始界面
+	if start_ui:
+		start_ui.visible = false
+	if game_over_ui:
+		game_over_ui.visible = false
+	if hud:
+		hud.visible = true
 	
-	# 显示开始界面
-	_show_start_ui()
+	# 直接开始游戏
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	_respawn_enemies()
+	GameManager.set_state(GameManager.GameState.PLAYING)
+	await get_tree().create_timer(0.5).timeout
+	if rail_system:
+		rail_system.start_moving()
 
 
 func _init_default_curves() -> void:
@@ -131,21 +145,33 @@ func _count_enemies() -> void:
 					child.died.connect(_on_enemy_died)
 
 
-func _on_reached_door() -> void:
-	# 到达门口，进入 BREACH 状态
+func _on_reached_waypoint1() -> void:
+	# 到达路径点1（门前），在此停留并准备开门
 	GameManager.set_state(GameManager.GameState.BREACH)
-	if door:
-		door.open()
-
-
-func _on_door_opened() -> void:
-	# 门打开后，继续移动穿过门
+	await get_tree().create_timer(0.2).timeout  # 短暂停留
+	# 开门并继续移动
 	if rail_system:
-		rail_system.continue_past_door()
+		rail_system.open_door_and_pass()
 
 
-func _on_reached_end() -> void:
-	# 穿过门后，进入射击阶段，启用玩家控制，开始倒计时
+func _on_door_ready_to_open() -> void:
+	# 打开门
+	if front_door:
+		front_door.open()
+
+
+func _on_front_door_opened() -> void:
+	# 门打开完成（如果需要特殊处理）
+	pass
+
+
+func _on_passed_door() -> void:
+	# 穿过门，继续移动到路径点2
+	pass
+
+
+func _on_reached_waypoint2() -> void:
+	# 到达路径点2（射击位置），停留并开始射击
 	GameManager.set_state(GameManager.GameState.PLAYING)
 	
 	# 启用玩家控制（可以开火和转视角）
@@ -153,6 +179,17 @@ func _on_reached_end() -> void:
 		player.enable_control()
 	
 	_start_timer()
+
+
+func _on_reached_waypoint3() -> void:
+	# 到达路径点3，准备传送回路径点1
+	await get_tree().create_timer(0.5).timeout
+	_teleport_and_restart()
+
+
+func _on_ready_to_teleport() -> void:
+	# 传送完成，准备开始下一关
+	pass
 
 
 func _start_timer() -> void:
@@ -186,38 +223,50 @@ func _on_enemy_died() -> void:
 	enemies_alive -= 1
 	
 	if enemies_alive <= 0 and timer_active:
-		# 所有敌人被消灭，停止计时，进入下一关
+		# 所有敌人被消灭，停止计时，移动到路径点3
 		timer_active = false
-		_start_next_room()
+		
+		# 禁用玩家控制
+		if player:
+			player.disable_control()
+			player.reset_view()
+		
+		# 移动到路径点3
+		await get_tree().create_timer(1.0).timeout
+		if rail_system:
+			rail_system.continue_to_waypoint3()
 
 
-func _start_next_room() -> void:
+func _teleport_and_restart() -> void:
+	"""传送回路径点1并开始下一关"""
 	current_room += 1
 	GameManager.rooms_cleared += 1
 	
-	# 禁用玩家控制并重置视角
-	if player:
-		player.disable_control()
-		player.reset_view()
-	
-	# 重置轨道位置
+	# 传送到路径点1
 	if rail_system:
-		rail_system.reset_position()
+		rail_system.teleport_to_waypoint1()
 	
-	# 重置门
-	if door:
-		door.is_open = false
-		var pivot := door.get_node_or_null("DoorPivot") as Node3D
+	# 重置前门
+	if front_door:
+		front_door.is_open = false
+		var pivot := front_door.get_node_or_null("DoorPivot") as Node3D
 		if pivot:
-			pivot.rotation_degrees.y = 0
+			pivot.rotation_degrees.x = 0
+	
+	# 重置后门
+	if back_door:
+		back_door.is_open = false
+		var pivot := back_door.get_node_or_null("DoorPivot") as Node3D
+		if pivot:
+			pivot.rotation_degrees.x = 0
 	
 	# 重新生成敌人
 	_respawn_enemies()
 	
-	# 开始移动
-	await get_tree().create_timer(0.5).timeout
+	# 等待一小段时间后再次开始移动（从路径点1开始）
+	await get_tree().create_timer(0.3).timeout
 	if rail_system:
-		rail_system.start_moving()
+		rail_system.start_moving()  # 从路径点1开始移动，到达后会自动触发开门
 
 
 func _respawn_enemies() -> void:
@@ -390,12 +439,19 @@ func _return_to_start() -> void:
 	if rail_system:
 		rail_system.reset_position()
 	
-	# 重置门
-	if door:
-		door.is_open = false
-		var pivot := door.get_node_or_null("DoorPivot") as Node3D
+	# 重置前门
+	if front_door:
+		front_door.is_open = false
+		var pivot := front_door.get_node_or_null("DoorPivot") as Node3D
 		if pivot:
-			pivot.rotation_degrees.y = 0
+			pivot.rotation_degrees.x = 0
+	
+	# 重置后门
+	if back_door:
+		back_door.is_open = false
+		var pivot := back_door.get_node_or_null("DoorPivot") as Node3D
+		if pivot:
+			pivot.rotation_degrees.x = 0
 	
 	# 清除现有敌人和人质
 	if entities:
@@ -489,12 +545,19 @@ func _on_restart_button_pressed() -> void:
 	if rail_system:
 		rail_system.reset_position()
 	
-	# 重置门
-	if door:
-		door.is_open = false
-		var pivot := door.get_node_or_null("DoorPivot") as Node3D
+	# 重置前门
+	if front_door:
+		front_door.is_open = false
+		var pivot := front_door.get_node_or_null("DoorPivot") as Node3D
 		if pivot:
-			pivot.rotation_degrees.y = 0
+			pivot.rotation_degrees.x = 0
+	
+	# 重置后门
+	if back_door:
+		back_door.is_open = false
+		var pivot := back_door.get_node_or_null("DoorPivot") as Node3D
+		if pivot:
+			pivot.rotation_degrees.x = 0
 	
 	# 清除现有敌人和人质
 	if entities:
@@ -514,6 +577,6 @@ func _on_restart_button_pressed() -> void:
 	_respawn_enemies()
 	
 	GameManager.set_state(GameManager.GameState.PLAYING)
-	await get_tree().create_timer(0.5).timeout
+	# 开始从起点移动到路径点1
 	if rail_system:
 		rail_system.start_moving()

@@ -16,6 +16,11 @@ class_name Player
 @export_group("Camera FOV")
 @export_range(30.0, 120.0, 1.0) var camera_fov: float = 80.0  ## 相机视野角度
 
+## 相机抖动配置
+@export_group("Camera Shake")
+@export var shake_intensity: float = 0.3  ## 抖动强度
+@export var shake_duration: float = 0.2  ## 抖动持续时间
+
 @onready var camera: Camera3D = $Camera3D
 
 var yaw: float = 0.0
@@ -23,11 +28,15 @@ var pitch: float = 0.0
 var _initial_yaw: float = 0.0  # 记录初始朝向，用于 yaw 限制的中心点
 var _shot_this_frame: bool = false
 var can_control: bool = false  # 是否允许开火和转动视角
+var shake_offset: Vector3 = Vector3.ZERO  # 相机抖动偏移
 
 
 func _ready() -> void:
 	print("Player: Ready")
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	
+	# 添加到player组，方便其他节点查找
+	add_to_group("player")
 	
 	# 设置相机 FOV
 	if camera:
@@ -101,9 +110,9 @@ func disable_control() -> void:
 func _physics_process(_delta: float) -> void:
 	# 摄像机跟随玩家位置（top_level=true 所以需要手动同步位置）
 	if camera:
-		camera.global_position = global_position + Vector3(0, 1.7, 0)
-		# 使用 global_rotation 确保绝对旋转，不受父节点影响
-		camera.global_rotation = Vector3(pitch, yaw, 0)
+		camera.global_position = global_position + Vector3(0, 1.7, 0) + shake_offset
+		# 固定视角，不随鼠标旋转
+		# camera.global_rotation = Vector3(pitch, yaw, 0)
 	
 	# 确保点击时捕获鼠标
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
@@ -125,10 +134,20 @@ func _shoot() -> void:
 	var muzzle_pos := camera.global_position - camera.global_transform.basis.z * 0.5 + camera.global_transform.basis.x * 0.2
 	VFXManager.spawn_vfx("muzzle", muzzle_pos, -camera.global_transform.basis.z)
 	
-	# 射线检测
+	# 射线检测 - 使用鼠标位置而不是屏幕中心
 	var space_state := get_world_3d().direct_space_state
-	var from := camera.global_position
-	var to := from - camera.global_transform.basis.z * max_distance
+	
+	# 获取HUD的鼠标位置
+	var hud = get_tree().get_first_node_in_group("hud")
+	var mouse_pos: Vector2
+	if hud and "mouse_position" in hud:
+		mouse_pos = hud.mouse_position
+	else:
+		# 后备方案：使用屏幕中心
+		mouse_pos = get_viewport().get_visible_rect().size / 2
+	
+	var from := camera.project_ray_origin(mouse_pos)
+	var to := from + camera.project_ray_normal(mouse_pos) * max_distance
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	var result := space_state.intersect_ray(query)
 	
@@ -163,3 +182,31 @@ func _hit_hostage(hostage: Node3D) -> void:
 	
 	if hostage.has_method("hit"):
 		hostage.hit()
+
+
+## 相机抖动效果
+func shake_camera(intensity: float = -1.0, duration: float = -1.0) -> void:
+	var shake_strength := intensity if intensity >= 0 else shake_intensity
+	var shake_time := duration if duration >= 0 else shake_duration
+	
+	var tween := create_tween()
+	tween.set_parallel(true)
+	
+	# 随机方向的抖动
+	var shake_count := 8  # 抖动次数
+	var time_per_shake := shake_time / float(shake_count)
+	
+	for i in range(shake_count):
+		var progress := float(i) / float(shake_count)
+		var current_intensity := shake_strength * (1.0 - progress)  # 逐渐减弱
+		
+		var random_offset := Vector3(
+			randf_range(-current_intensity, current_intensity),
+			randf_range(-current_intensity, current_intensity),
+			randf_range(-current_intensity, current_intensity)
+		)
+		
+		tween.tween_property(self, "shake_offset", random_offset, time_per_shake).set_delay(time_per_shake * i)
+	
+	# 最后回到0
+	tween.tween_property(self, "shake_offset", Vector3.ZERO, time_per_shake * 0.5).set_delay(shake_time)
