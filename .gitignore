@@ -17,4 +17,5 @@ mcp/godot-mcp/build/
 mcp/
 .codebuddy/
 .cursor/
+.vscode/
 CODEBUDDY.md
