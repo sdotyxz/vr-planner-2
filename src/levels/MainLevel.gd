@@ -278,141 +278,201 @@ func _respawn_enemies() -> void:
 		if child is Enemy or child is Hostage:
 			child.queue_free()
 	
+	# 清除现有掩体
+	if covers_container:
+		for child in covers_container.get_children():
+			child.queue_free()
+	cover_positions.clear()
+	
 	# 等待一帧确保节点被清除
 	await get_tree().process_frame
 	
-	# 先生成掩体
-	_respawn_covers()
-	
 	# 生成配置
 	var enemy_count := _get_enemy_count()
-	var cover_count := cover_positions.size()
+	var cover_count := _get_cover_count()
+	var standalone_enemy_count := enemy_count - cover_count  # 独立敌人数量
 	
-	# 确保至少有 cover_count 个敌人在掩体后（但不超过敌人总数）
-	var enemies_behind_cover := mini(cover_count, enemy_count)
-	var enemies_random := enemy_count - enemies_behind_cover
-	
-	const MIN_HOSTAGE_ENEMY_DISTANCE := 2.0  # 人质与敌人最小距离
-	
-	# 房间X轴范围
+	# 房间范围配置
 	const X_MIN := -10.0
 	const X_MAX := 10.0
-	# Z轴范围（深度方向，更远离玩家）
-	const Z_MIN := -28.0
-	const Z_MAX := -14.0
+	const ENEMY_Z_MIN := -26.0  # 敌人/掩体Z范围
+	const ENEMY_Z_MAX := -16.0
+	const HOSTAGE_Z_MIN := -32.0  # 人质Z范围（后方，不会挡住敌人）
+	const HOSTAGE_Z_MAX := -28.0
+	const DOOR_X_MIN := -2.5  # 门的X范围（避开区域）
+	const DOOR_X_MAX := 2.5
+	const MIN_SPACING := 3.5  # 最小间距
 	
-	var occupied_positions: Array[Vector3] = []
+	# 计算总物体数量：掩体+敌人算一个，独立敌人，人质
+	var total_objects := cover_count + standalone_enemy_count + hostage_count
+	if total_objects == 0:
+		enemies_alive = 0
+		return
+	
+	# 统一计算所有物体的X位置槽（均匀分布，不打乱）
+	var all_x_slots := _calculate_uniform_x_slots(
+		total_objects, X_MIN, X_MAX, DOOR_X_MIN, DOOR_X_MAX,
+		[], MIN_SPACING
+	)
+	
+	# 按X位置排序，确保从左到右均匀
+	all_x_slots.sort()
+	
 	var enemy_scene := preload("res://src/entities/Enemy.tscn")
+	var hostage_scene := preload("res://src/entities/Hostage.tscn")
 	
-	# 先在掩体后生成敌人
-	for i in range(enemies_behind_cover):
-		var cover_pos := cover_positions[i]
-		# 敌人在掩体后面（Z 更负的方向，即更远离玩家）
-		var enemy_pos := Vector3(
-			cover_pos.x + randf_range(-0.5, 0.5),
-			1.0,
-			cover_pos.z - randf_range(0.5, 1.5)  # 在掩体后 0.5-1.5 米
-		)
-		occupied_positions.append(enemy_pos)
+	# 创建物体类型列表，然后交错分配到槽位
+	# 物体类型: 0=掩体+敌人, 1=独立敌人, 2=人质
+	var object_types: Array[int] = []
+	for i in range(cover_count):
+		object_types.append(0)
+	for i in range(standalone_enemy_count):
+		object_types.append(1)
+	for i in range(hostage_count):
+		object_types.append(2)
+	
+	# 交错排列物体类型，让不同类型分散开
+	var sorted_types: Array[int] = []
+	var type_indices := [0, 0, 0]  # 每种类型当前索引
+	var type_counts := [cover_count, standalone_enemy_count, hostage_count]
+	
+	# 轮流从每种类型取一个
+	var added := true
+	while added:
+		added = false
+		for t in range(3):
+			if type_indices[t] < type_counts[t]:
+				sorted_types.append(t)
+				type_indices[t] += 1
+				added = true
+	
+	# 根据排列好的类型和槽位生成物体
+	for i in range(mini(sorted_types.size(), all_x_slots.size())):
+		var x_pos: float = all_x_slots[i]
+		var obj_type: int = sorted_types[i]
 		
-		var enemy: Enemy = enemy_scene.instantiate()
-		entities.add_child(enemy)
-		enemy.global_position = enemy_pos
-		enemy.died.connect(_on_enemy_died)
-	
-	# 剩余敌人在X轴上均匀分布（带微小随机偏移）
-	if enemies_random > 0:
-		var x_step := (X_MAX - X_MIN) / float(enemies_random + 1)  # 均匀间隔
-		for i in range(enemies_random):
-			var base_x := X_MIN + x_step * (i + 1)  # 均匀分布的基准X位置
-			var random_offset_x := randf_range(-1.5, 1.5)  # X轴微小随机偏移
-			var final_x := clampf(base_x + random_offset_x, X_MIN, X_MAX)
+		if obj_type == 0:  # 掩体+敌人
+			var z_pos := randf_range(ENEMY_Z_MIN, ENEMY_Z_MAX)
 			
-			var pos := Vector3(
-				final_x,
-				1.0,
-				randf_range(Z_MIN, Z_MAX)  # Z轴随机
-			)
-			occupied_positions.append(pos)
+			# 生成掩体
+			var cover := MeshInstance3D.new()
+			var box_mesh := BoxMesh.new()
+			box_mesh.size = Vector3(1.5, 1.2, 0.4)
+			var material := StandardMaterial3D.new()
+			material.albedo_color = Color(0.4, 0.3, 0.2, 1.0)
+			material.roughness = 0.8
+			box_mesh.material = material
+			cover.mesh = box_mesh
+			if covers_container:
+				covers_container.add_child(cover)
+			cover.global_position = Vector3(x_pos, 0.6, z_pos)
+			cover_positions.append(Vector3(x_pos, 1.0, z_pos))
 			
+			# 生成掩体后的敌人
 			var enemy: Enemy = enemy_scene.instantiate()
 			entities.add_child(enemy)
-			enemy.global_position = pos
+			enemy.global_position = Vector3(x_pos, 1.0, z_pos - randf_range(0.8, 1.2))
 			enemy.died.connect(_on_enemy_died)
-	
-	# 生成人质（在敌人之间的位置）
-	var hostage_scene := preload("res://src/entities/Hostage.tscn")
-	for i in range(hostage_count):
-		var pos := _find_valid_position(occupied_positions, X_MIN, X_MAX, Z_MIN, Z_MAX, MIN_HOSTAGE_ENEMY_DISTANCE)
-		occupied_positions.append(pos)
-		
-		var hostage: Hostage = hostage_scene.instantiate()
-		entities.add_child(hostage)
-		hostage.global_position = pos
+			
+		elif obj_type == 1:  # 独立敌人
+			var enemy: Enemy = enemy_scene.instantiate()
+			entities.add_child(enemy)
+			enemy.global_position = Vector3(x_pos, 1.0, randf_range(ENEMY_Z_MIN, ENEMY_Z_MAX))
+			enemy.died.connect(_on_enemy_died)
+			
+		else:  # 人质
+			var hostage: Hostage = hostage_scene.instantiate()
+			entities.add_child(hostage)
+			hostage.global_position = Vector3(x_pos, 1.0, randf_range(HOSTAGE_Z_MIN, HOSTAGE_Z_MAX))
 	
 	enemies_alive = enemy_count
 
 
 func _respawn_covers() -> void:
-	# 清除现有掩体
-	if covers_container:
-		for child in covers_container.get_children():
-			child.queue_free()
-	
-	cover_positions.clear()
-	
-	var cover_count := _get_cover_count()
-	
-	# 掩体生成范围（匹配房间尺寸）
-	const X_MIN := -9.0
-	const X_MAX := 9.0
-	const Z_MIN := -26.0
-	const Z_MAX := -15.0
-	const MIN_COVER_DISTANCE := 4.0  # 掩体之间最小距离
-	
-	for i in range(cover_count):
-		var pos := _find_valid_position(cover_positions, X_MIN, X_MAX, Z_MIN, Z_MAX, MIN_COVER_DISTANCE)
-		cover_positions.append(pos)
-		
-		# 创建掩体 MeshInstance3D（纯色方块）
-		var cover := MeshInstance3D.new()
-		var box_mesh := BoxMesh.new()
-		box_mesh.size = Vector3(1.5, 1.2, 0.4)
-		
-		var material := StandardMaterial3D.new()
-		material.albedo_color = Color(0.4, 0.3, 0.2, 1.0)  # 棕色
-		material.roughness = 0.8
-		box_mesh.material = material
-		
-		cover.mesh = box_mesh
-		
-		if covers_container:
-			covers_container.add_child(cover)
-		cover.global_position = Vector3(pos.x, 0.6, pos.z)
+	# 掩体现在在 _respawn_enemies 中统一生成，这个函数保留为空
+	pass
 
 
-func _find_valid_position(occupied: Array[Vector3], x_min: float, x_max: float, z_min: float, z_max: float, min_distance: float) -> Vector3:
-	const MAX_ATTEMPTS := 50
+## 计算X轴上均匀分布的位置槽
+## count: 需要的位置数量
+## x_min, x_max: X轴范围
+## door_x_min, door_x_max: 门的X范围（需要避开）
+## occupied: 已占用的X位置
+## min_spacing: 最小间距
+func _calculate_uniform_x_slots(
+	count: int, 
+	x_min: float, x_max: float, 
+	door_x_min: float, door_x_max: float,
+	occupied: Array[float],
+	min_spacing: float
+) -> Array[float]:
+	var result: Array[float] = []
+	if count <= 0:
+		return result
 	
-	for attempt in range(MAX_ATTEMPTS):
-		var test_pos := Vector3(
-			randf_range(x_min, x_max),
-			1.0,
-			randf_range(z_min, z_max)
-		)
-		
-		var valid := true
-		for existing_pos in occupied:
-			var dist := Vector2(test_pos.x, test_pos.z).distance_to(Vector2(existing_pos.x, existing_pos.z))
-			if dist < min_distance:
-				valid = false
-				break
-		
-		if valid:
-			return test_pos
+	# 可用区域：左侧 [x_min, door_x_min] 和 右侧 [door_x_max, x_max]
+	var left_width := door_x_min - x_min
+	var right_width := x_max - door_x_max
+	var total_width := left_width + right_width
 	
-	# 如果找不到合适位置，返回一个随机位置
-	return Vector3(randf_range(x_min, x_max), 1.0, randf_range(z_min, z_max))
+	if total_width <= 0:
+		return result
+	
+	# 根据宽度比例分配数量
+	var left_count := int(round(count * (left_width / total_width)))
+	var right_count := count - left_count
+	
+	# 确保两边都有合理数量
+	if left_count == 0 and count > 0 and left_width > min_spacing:
+		left_count = 1
+		right_count = count - 1
+	if right_count == 0 and count > 0 and right_width > min_spacing:
+		right_count = 1
+		left_count = count - 1
+	
+	# 左侧区域均匀分布
+	if left_count > 0:
+		var step := left_width / float(left_count + 1)
+		for i in range(left_count):
+			var base_x := x_min + step * (i + 1)
+			var final_x := _find_non_overlapping_x(base_x, occupied, min_spacing, x_min, door_x_min - 0.5)
+			result.append(final_x)
+			occupied.append(final_x)
+	
+	# 右侧区域均匀分布
+	if right_count > 0:
+		var step := right_width / float(right_count + 1)
+		for i in range(right_count):
+			var base_x := door_x_max + step * (i + 1)
+			var final_x := _find_non_overlapping_x(base_x, occupied, min_spacing, door_x_max + 0.5, x_max)
+			result.append(final_x)
+			occupied.append(final_x)
+	
+	return result
+
+
+## 在给定基准位置附近找到不重叠的X位置
+func _find_non_overlapping_x(base_x: float, occupied: Array[float], min_spacing: float, x_min: float, x_max: float) -> float:
+	# 先检查基准位置是否可用
+	if _is_x_valid(base_x, occupied, min_spacing):
+		return base_x
+	
+	# 尝试在附近找到可用位置
+	for offset in [0.5, -0.5, 1.0, -1.0, 1.5, -1.5, 2.0, -2.0]:
+		var test_x := clampf(base_x + offset, x_min, x_max)
+		if _is_x_valid(test_x, occupied, min_spacing):
+			return test_x
+	
+	# 如果找不到，返回带随机偏移的基准位置
+	return clampf(base_x + randf_range(-0.5, 0.5), x_min, x_max)
+
+
+## 检查X位置是否与已占用位置保持足够间距
+func _is_x_valid(x: float, occupied: Array[float], min_spacing: float) -> bool:
+	for occ_x in occupied:
+		if absf(x - occ_x) < min_spacing:
+			return false
+	return true
 
 
 func _return_to_start() -> void:
