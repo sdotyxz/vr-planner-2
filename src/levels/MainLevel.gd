@@ -30,6 +30,16 @@ class_name MainLevel
 @export var enemy_curve: Curve  ## 敌人曲线：关卡越高，敌人乘数
 @export var cover_curve: Curve  ## 掩体曲线：关卡越高，掩体乘数
 
+## 生成区域节点配置（通过场景中的节点定义区域）
+@export_group("Spawn Areas")
+@export_node_path("SpawnArea") var enemy_spawn_area_path: NodePath  ## 敌人生成区域
+@export_node_path("SpawnArea") var hostage_spawn_area_path: NodePath  ## 人质生成区域
+@export_node_path("SpawnArea") var door_avoid_area_path: NodePath  ## 门区域（避开）
+
+var enemy_spawn_area: SpawnArea
+var hostage_spawn_area: SpawnArea
+var door_avoid_area: SpawnArea
+
 var enemies_alive: int = 0
 var current_room: int = 1
 var time_remaining: float = 0.0
@@ -38,6 +48,14 @@ var cover_positions: Array[Vector3] = []  ## 当前掩体位置列表
 
 
 func _ready() -> void:
+	# 获取 SpawnArea 节点引用
+	if enemy_spawn_area_path:
+		enemy_spawn_area = get_node_or_null(enemy_spawn_area_path) as SpawnArea
+	if hostage_spawn_area_path:
+		hostage_spawn_area = get_node_or_null(hostage_spawn_area_path) as SpawnArea
+	if door_avoid_area_path:
+		door_avoid_area = get_node_or_null(door_avoid_area_path) as SpawnArea
+	
 	# 初始化默认曲线（如果没有配置）
 	_init_default_curves()
 	
@@ -292,27 +310,46 @@ func _respawn_enemies() -> void:
 	var cover_count := _get_cover_count()
 	var standalone_enemy_count := enemy_count - cover_count  # 独立敌人数量
 	
-	# 房间范围配置
-	const X_MIN := -10.0
-	const X_MAX := 10.0
-	const ENEMY_Z_MIN := -26.0  # 敌人/掩体Z范围
-	const ENEMY_Z_MAX := -16.0
-	const HOSTAGE_Z_MIN := -32.0  # 人质Z范围（后方，不会挡住敌人）
-	const HOSTAGE_Z_MAX := -28.0
-	const DOOR_X_MIN := -2.5  # 门的X范围（避开区域）
-	const DOOR_X_MAX := 2.5
-	const MIN_SPACING := 3.5  # 最小间距
-	
 	# 计算总物体数量：掩体+敌人算一个，独立敌人，人质
 	var total_objects := cover_count + standalone_enemy_count + hostage_count
 	if total_objects == 0:
 		enemies_alive = 0
 		return
 	
+	# 从 SpawnArea 节点获取区域范围
+	var spawn_x_min := -10.0
+	var spawn_x_max := 10.0
+	var door_x_min := -2.5
+	var door_x_max := 2.5
+	var min_spacing := 3.5
+	var enemy_z_min := -26.0
+	var enemy_z_max := -16.0
+	var hostage_z_min := -32.0
+	var hostage_z_max := -28.0
+	
+	if enemy_spawn_area:
+		var x_range := enemy_spawn_area.get_x_range()
+		var z_range := enemy_spawn_area.get_z_range()
+		spawn_x_min = x_range.x
+		spawn_x_max = x_range.y
+		enemy_z_min = z_range.x
+		enemy_z_max = z_range.y
+		min_spacing = enemy_spawn_area.min_spacing
+	
+	if hostage_spawn_area:
+		var z_range := hostage_spawn_area.get_z_range()
+		hostage_z_min = z_range.x
+		hostage_z_max = z_range.y
+	
+	if door_avoid_area:
+		var x_range := door_avoid_area.get_x_range()
+		door_x_min = x_range.x
+		door_x_max = x_range.y
+	
 	# 统一计算所有物体的X位置槽（均匀分布，不打乱）
 	var all_x_slots := _calculate_uniform_x_slots(
-		total_objects, X_MIN, X_MAX, DOOR_X_MIN, DOOR_X_MAX,
-		[], MIN_SPACING
+		total_objects, spawn_x_min, spawn_x_max, door_x_min, door_x_max,
+		[], min_spacing
 	)
 	
 	# 按X位置排序，确保从左到右均匀
@@ -352,7 +389,7 @@ func _respawn_enemies() -> void:
 		var obj_type: int = sorted_types[i]
 		
 		if obj_type == 0:  # 掩体+敌人
-			var z_pos := randf_range(ENEMY_Z_MIN, ENEMY_Z_MAX)
+			var z_pos := randf_range(enemy_z_min, enemy_z_max)
 			
 			# 生成掩体
 			var cover := MeshInstance3D.new()
@@ -377,13 +414,13 @@ func _respawn_enemies() -> void:
 		elif obj_type == 1:  # 独立敌人
 			var enemy: Enemy = enemy_scene.instantiate()
 			entities.add_child(enemy)
-			enemy.global_position = Vector3(x_pos, 1.0, randf_range(ENEMY_Z_MIN, ENEMY_Z_MAX))
+			enemy.global_position = Vector3(x_pos, 1.0, randf_range(enemy_z_min, enemy_z_max))
 			enemy.died.connect(_on_enemy_died)
 			
 		else:  # 人质
 			var hostage: Hostage = hostage_scene.instantiate()
 			entities.add_child(hostage)
-			hostage.global_position = Vector3(x_pos, 1.0, randf_range(HOSTAGE_Z_MIN, HOSTAGE_Z_MAX))
+			hostage.global_position = Vector3(x_pos, 1.0, randf_range(hostage_z_min, hostage_z_max))
 	
 	enemies_alive = enemy_count
 

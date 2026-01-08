@@ -1,24 +1,46 @@
-[gd_scene load_steps=11 format=3 uid="uid://mainlevel001"]
+[gd_scene load_steps=18 format=3 uid="uid://mainlevel001"]
 
 [ext_resource type="Script" uid="uid://qtauhdr44hfg" path="res://src/levels/MainLevel.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://d3xcfsijjem3y" path="res://src/systems/RailSystem.tscn" id="2_rail"]
 [ext_resource type="PackedScene" uid="uid://cplayer001" path="res://src/player/Player.tscn" id="3_player"]
 [ext_resource type="PackedScene" uid="uid://chud001" path="res://src/ui/HUD.tscn" id="6_hud"]
 [ext_resource type="PackedScene" uid="uid://cdoor001" path="res://src/entities/Door.tscn" id="7_door"]
+[ext_resource type="Script" uid="uid://dqtv5n3jnwtsg" path="res://src/systems/SpawnArea.gd" id="8_spawn_area"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_x00gq"]
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_ndn0y"]
 sky_top_color = Color(1, 1, 1, 1)
-sky_horizon_color = Color(1.277395, 1.269645, 1.2606452, 1)
-ground_horizon_color = Color(1.277395, 1.269645, 1.2606452, 1)
+sky_horizon_color = Color(1.2774, 1.26964, 1.26065, 1)
+ground_horizon_color = Color(1.2774, 1.26964, 1.26065, 1)
 
-[sub_resource type="Sky" id="Sky_sndxx"]
-sky_material = SubResource("ProceduralSkyMaterial_x00gq")
+[sub_resource type="Sky" id="Sky_x00gq"]
+sky_material = SubResource("ProceduralSkyMaterial_ndn0y")
 
-[sub_resource type="Environment" id="Environment_slbv1"]
+[sub_resource type="Environment" id="Environment_sndxx"]
 background_mode = 2
-sky = SubResource("Sky_sndxx")
+sky = SubResource("Sky_x00gq")
 tonemap_mode = 2
 glow_enabled = true
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_enemy"]
+size = Vector3(8, 4, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_enemy_visual"]
+transparency = 1
+albedo_color = Color(1, 0.3, 0.3, 0.3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hostage"]
+size = Vector3(12, 4, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hostage_visual"]
+transparency = 1
+albedo_color = Color(0.3, 0.3, 1, 0.3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_door"]
+size = Vector3(2, 4, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_door_visual"]
+transparency = 1
+albedo_color = Color(1, 1, 0.3, 0.3)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_x00gq"]
 
@@ -26,9 +48,12 @@ glow_enabled = true
 
 [node name="MainLevel" type="Node3D"]
 script = ExtResource("1_script")
+enemy_spawn_area_path = NodePath("SpawnAreas/EnemySpawnArea")
+hostage_spawn_area_path = NodePath("SpawnAreas/HostageSpawnArea")
+door_avoid_area_path = NodePath("SpawnAreas/DoorAvoidArea")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_slbv1")
+environment = SubResource("Environment_sndxx")
 
 [node name="RailSystem" parent="." instance=ExtResource("2_rail")]
 speed = 15.0
@@ -40,17 +65,71 @@ camera_fov = 60.0
 shake_intensity = 1.0
 
 [node name="SpawnDoor" parent="." instance=ExtResource("7_door")]
-transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 0, 0, 27)
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 0, 0, 5.04866)
 
 [node name="FrontDoor" parent="." instance=ExtResource("7_door")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0509357, -5.066351)
 
 [node name="BackDoor" parent="." instance=ExtResource("7_door")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -35)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -15.585909)
 
 [node name="Covers" type="Node3D" parent="."]
 
 [node name="Entities" type="Node3D" parent="."]
+
+[node name="SpawnAreas" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.6033745)
+
+[node name="EnemySpawnArea" type="Area3D" parent="SpawnAreas"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -8)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("8_spawn_area")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SpawnAreas/EnemySpawnArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)
+shape = SubResource("BoxShape3D_enemy")
+
+[node name="DebugVisual" type="CSGBox3D" parent="SpawnAreas/EnemySpawnArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)
+visible = false
+transparency = 0.7
+size = Vector3(8, 4, 2)
+material = SubResource("StandardMaterial3D_enemy_visual")
+
+[node name="HostageSpawnArea" type="Area3D" parent="SpawnAreas"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -12.518486)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("8_spawn_area")
+area_type = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SpawnAreas/HostageSpawnArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1)
+shape = SubResource("BoxShape3D_hostage")
+
+[node name="DebugVisual" type="CSGBox3D" parent="SpawnAreas/HostageSpawnArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1)
+visible = false
+transparency = 0.7
+size = Vector3(12, 4, 2)
+material = SubResource("StandardMaterial3D_hostage_visual")
+
+[node name="DoorAvoidArea" type="Area3D" parent="SpawnAreas"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -6.6287136)
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("8_spawn_area")
+area_type = 2
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SpawnAreas/DoorAvoidArea"]
+shape = SubResource("BoxShape3D_door")
+
+[node name="DebugVisual" type="CSGBox3D" parent="SpawnAreas/DoorAvoidArea"]
+visible = false
+transparency = 0.7
+size = Vector3(2, 4, 2)
+material = SubResource("StandardMaterial3D_door_visual")
 
 [node name="UI" type="CanvasLayer" parent="."]
 
@@ -170,21 +249,26 @@ text = "RESTART"
 [node name="CSGCombiner3D" type="CSGCombiner3D" parent="."]
 
 [node name="CSGBox3D" type="CSGBox3D" parent="CSGCombiner3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.4945545, 11.487365)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
 flip_faces = true
-size = Vector3(30, 15, 31)
+size = Vector3(15, 4, 10)
 material = SubResource("StandardMaterial3D_x00gq")
 
 [node name="CSGBox3D2" type="CSGBox3D" parent="CSGCombiner3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.4945545, -19.548304)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -10.5)
 flip_faces = true
-size = Vector3(30, 15, 31)
+size = Vector3(15, 4, 10)
 material = SubResource("StandardMaterial3D_sndxx")
 
 [node name="CSGBox3D3" type="CSGBox3D" parent="CSGCombiner3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0014572144, 1.2321384, -3.961634)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.022340596, 1.4879004, -5.11309)
 flip_faces = true
-size = Vector3(2, 2.5614014, 1)
+size = Vector3(1.5506516, 2.9316406, 1)
+
+[node name="CSGBox3D4" type="CSGBox3D" parent="CSGCombiner3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.026670277, 0.99327147, -15.728075)
+flip_faces = true
+size = Vector3(0.9399109, 1.9423828, 1)
 
 [connection signal="pressed" from="UI/StartUI/VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
 [connection signal="pressed" from="UI/GameOverUI/VBoxContainer/RestartButton" to="." method="_on_restart_button_pressed"]

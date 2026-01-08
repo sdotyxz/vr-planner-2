@@ -24,4 +24,3 @@ mesh = SubResource("BoxMesh_body")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
 top_level = true
 current = true
-fov = 80.0
