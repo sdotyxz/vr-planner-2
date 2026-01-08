@@ -1,42 +1,34 @@
-[gd_scene load_steps=13 format=3 uid="uid://mainlevel001"]
+[gd_scene load_steps=11 format=3 uid="uid://mainlevel001"]
 
 [ext_resource type="Script" uid="uid://qtauhdr44hfg" path="res://src/levels/MainLevel.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://d3xcfsijjem3y" path="res://src/systems/RailSystem.tscn" id="2_rail"]
 [ext_resource type="PackedScene" uid="uid://cplayer001" path="res://src/player/Player.tscn" id="3_player"]
 [ext_resource type="PackedScene" uid="uid://chud001" path="res://src/ui/HUD.tscn" id="6_hud"]
 [ext_resource type="PackedScene" uid="uid://cdoor001" path="res://src/entities/Door.tscn" id="7_door"]
-[ext_resource type="Texture2D" uid="uid://0lpoqcn6ep0g" path="res://assets/scenes/background.png" id="8_background"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
-albedo_color = Color(0.3, 0.3, 0.35, 1)
-roughness = 0.9
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_x00gq"]
+sky_top_color = Color(1, 1, 1, 1)
+sky_horizon_color = Color(1.277395, 1.269645, 1.2606452, 1)
+ground_horizon_color = Color(1.277395, 1.269645, 1.2606452, 1)
 
-[sub_resource type="BoxMesh" id="BoxMesh_floor"]
-material = SubResource("StandardMaterial3D_floor")
-size = Vector3(24, 0.2, 28)
+[sub_resource type="Sky" id="Sky_sndxx"]
+sky_material = SubResource("ProceduralSkyMaterial_x00gq")
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
-albedo_color = Color(0.25, 0.25, 0.28, 1)
-roughness = 0.85
+[sub_resource type="Environment" id="Environment_slbv1"]
+background_mode = 2
+sky = SubResource("Sky_sndxx")
+tonemap_mode = 2
+glow_enabled = true
 
-[sub_resource type="BoxMesh" id="BoxMesh_front_wall"]
-material = SubResource("StandardMaterial3D_wall")
-size = Vector3(11, 4, 0.3)
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_x00gq"]
 
-[sub_resource type="BoxMesh" id="BoxMesh_top_wall"]
-material = SubResource("StandardMaterial3D_wall")
-size = Vector3(2, 1.5, 0.3)
-
-[sub_resource type="BoxMesh" id="BoxMesh_wall"]
-material = SubResource("StandardMaterial3D_wall")
-size = Vector3(0.3, 4, 28)
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sndxx"]
 
 [node name="MainLevel" type="Node3D"]
 script = ExtResource("1_script")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.8660253, -0.35355332, 0.35355374, 0, 0.70710725, 0.7071064, -0.50000024, -0.61237204, 0.61237276, -1.8673782, 10, 5)
-shadow_enabled = true
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_slbv1")
 
 [node name="RailSystem" parent="." instance=ExtResource("2_rail")]
 speed = 15.0
@@ -55,81 +47,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4)
 
 [node name="BackDoor" parent="." instance=ExtResource("7_door")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -35)
-
-[node name="Environment" type="Node3D" parent="."]
-
-[node name="Floor" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(3, 0, 0, 0, 1, 0, 0, 0, 3, 0, -0.1, -6)
-mesh = SubResource("BoxMesh_floor")
-
-[node name="SpawnWallLeft" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(2, 0, 0, 0, 5, 0, 0, 0, 1, -11.91033, 8.054775, 27)
-mesh = SubResource("BoxMesh_front_wall")
-
-[node name="SpawnWallRight" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(2, 0, 0, 0, 5, 0, 0, 0, 1, 12.003397, 8.364757, 27)
-mesh = SubResource("BoxMesh_front_wall")
-
-[node name="SpawnTopWall" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 9.928007, 27)
-mesh = SubResource("BoxMesh_top_wall")
-
-[node name="WallLeft" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 5, 0, 0, 0, 3, -15.103426, 8.806529, -6)
-mesh = SubResource("BoxMesh_wall")
-
-[node name="WallRight" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 5, 0, 0, 0, 3, 15.309898, 7.297226, -6)
-mesh = SubResource("BoxMesh_wall")
-
-[node name="FrontWallLeft" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(2, 0, 0, 0, 5, 0, 0, 0, 1, -11.91033, 8.054775, -4)
-mesh = SubResource("BoxMesh_front_wall")
-
-[node name="FrontWallRight" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(2, 0, 0, 0, 5, 0, 0, 0, 1, 12.003397, 8.364757, -4)
-mesh = SubResource("BoxMesh_front_wall")
-
-[node name="TopWall" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 9.928007, -4)
-mesh = SubResource("BoxMesh_top_wall")
-
-[node name="BackWallLeft" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(2, 0, 0, 0, 5, 0, 0, 0, 1, -11.91033, 8.054775, -35)
-mesh = SubResource("BoxMesh_front_wall")
-
-[node name="BackWallRight" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(2, 0, 0, 0, 5, 0, 0, 0, 1, 12.003397, 8.364757, -35)
-mesh = SubResource("BoxMesh_front_wall")
-
-[node name="BackTopWall" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 9.928007, -35)
-mesh = SubResource("BoxMesh_top_wall")
-
-[node name="BackWallSprite" type="Sprite3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.626969, -60)
-pixel_size = 0.008
-texture = ExtResource("8_background")
-
-[node name="Floor2" type="MeshInstance3D" parent="Environment"]
-transform = Transform3D(3, 0, 0, 0, 1, 0, 0, 0, 3, 1.0672293, 17.176922, -6.178398)
-mesh = SubResource("BoxMesh_floor")
-
-[node name="CombatRoomLight" type="OmniLight3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, -20)
-light_color = Color(1, 0.95, 0.85, 1)
-light_energy = 3.0
-light_indirect_energy = 0.5
-omni_range = 10.0
-omni_attenuation = 0.8
-
-[node name="SpawnRoomLight" type="OmniLight3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 10)
-light_color = Color(1, 0.95, 0.85, 1)
-light_energy = 3.0
-light_indirect_energy = 0.5
-omni_range = 10.0
-omni_attenuation = 0.8
 
 [node name="Covers" type="Node3D" parent="."]
 
@@ -249,6 +166,25 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 24
 text = "RESTART"
+
+[node name="CSGCombiner3D" type="CSGCombiner3D" parent="."]
+
+[node name="CSGBox3D" type="CSGBox3D" parent="CSGCombiner3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.4945545, 11.487365)
+flip_faces = true
+size = Vector3(30, 15, 31)
+material = SubResource("StandardMaterial3D_x00gq")
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="CSGCombiner3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.4945545, -19.548304)
+flip_faces = true
+size = Vector3(30, 15, 31)
+material = SubResource("StandardMaterial3D_sndxx")
+
+[node name="CSGBox3D3" type="CSGBox3D" parent="CSGCombiner3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0014572144, 1.2321384, -3.961634)
+flip_faces = true
+size = Vector3(2, 2.5614014, 1)
 
 [connection signal="pressed" from="UI/StartUI/VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
 [connection signal="pressed" from="UI/GameOverUI/VBoxContainer/RestartButton" to="." method="_on_restart_button_pressed"]
