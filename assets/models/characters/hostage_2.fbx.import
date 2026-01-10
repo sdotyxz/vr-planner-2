@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://da8nl83i3ijvf"
-path="res://.godot/imported/1_material_4.FBX-aa1229b42e8f13238aba5263a9092a3e.scn"
+uid="uid://pdo4wwplpwen"
+path="res://.godot/imported/hostage_2.fbx-c67102933c0bf015fbd208ed5606f1a2.scn"
 
 [deps]
 
-source_file="res://assets/models/characters/1_material_4.FBX"
-dest_files=["res://.godot/imported/1_material_4.FBX-aa1229b42e8f13238aba5263a9092a3e.scn"]
+source_file="res://assets/models/characters/hostage_2.fbx"
+dest_files=["res://.godot/imported/hostage_2.fbx-c67102933c0bf015fbd208ed5606f1a2.scn"]
 
 [params]
 

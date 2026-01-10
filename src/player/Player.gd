@@ -129,10 +129,8 @@ func _physics_process(_delta: float) -> void:
 
 
 func _shoot() -> void:
-	# 音效和枪口火焰
+	# 音效
 	AudioManager.play_sfx("fire")
-	var muzzle_pos := camera.global_position - camera.global_transform.basis.z * 0.5 + camera.global_transform.basis.x * 0.2
-	VFXManager.spawn_vfx("muzzle", muzzle_pos, -camera.global_transform.basis.z)
 	
 	# 射线检测 - 使用鼠标位置而不是屏幕中心
 	var space_state := get_world_3d().direct_space_state
@@ -146,8 +144,25 @@ func _shoot() -> void:
 		# 后备方案：使用屏幕中心
 		mouse_pos = get_viewport().get_visible_rect().size / 2
 	
+	# 在相机前方生成枪口火焰（根据射击方向）
+	var ray_dir := camera.project_ray_normal(mouse_pos)
+	var muzzle_pos := camera.global_position + ray_dir * 0.5
+	VFXManager.spawn_vfx("muzzle", muzzle_pos, ray_dir)
+	
+	# 优先检查是否点击在射击提示范围内
+	var main_level = get_tree().get_first_node_in_group("main_level") as MainLevel
+	if not main_level:
+		main_level = get_parent() as MainLevel
+	
+	if main_level and main_level.has_method("check_shooting_hint_hit"):
+		var hint_enemy: Enemy = main_level.check_shooting_hint_hit(mouse_pos, camera)
+		if hint_enemy and is_instance_valid(hint_enemy):
+			_hit_enemy(hint_enemy, hint_enemy.global_position, Vector3.UP)
+			return
+	
+	# 如果没有命中射击提示，使用物理射线检测
 	var from := camera.project_ray_origin(mouse_pos)
-	var to := from + camera.project_ray_normal(mouse_pos) * max_distance
+	var to := from + ray_dir * max_distance
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	var result := space_state.intersect_ray(query)
 	
@@ -166,7 +181,6 @@ func _shoot() -> void:
 
 func _hit_enemy(enemy: Node3D, point: Vector3, normal: Vector3) -> void:
 	AudioManager.play_sfx("hit")
-	VFXManager.spawn_vfx("blood", point, normal)
 	GameManager.add_score(100)
 	GameManager.add_kill()
 	

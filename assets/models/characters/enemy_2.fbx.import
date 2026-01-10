@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://cjkjcan4cime5"
-path="res://.godot/imported/1_material_10.FBX-454c2d6b5606c3fb09469fb7c2a8108a.scn"
+uid="uid://1y2ndg71eg6q"
+path="res://.godot/imported/enemy_2.fbx-aa5280b605ffbc906f4f8ecd70b7f2bc.scn"
 
 [deps]
 
-source_file="res://assets/models/characters/1_material_10.FBX"
-dest_files=["res://.godot/imported/1_material_10.FBX-454c2d6b5606c3fb09469fb7c2a8108a.scn"]
+source_file="res://assets/models/characters/enemy_2.fbx"
+dest_files=["res://.godot/imported/enemy_2.fbx-aa5280b605ffbc906f4f8ecd70b7f2bc.scn"]
 
 [params]
 

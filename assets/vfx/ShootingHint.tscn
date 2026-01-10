@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3 uid="uid://mwbbuvu7yvt5"]
+
+[ext_resource type="Texture2D" uid="uid://x1u5e75u8c3g" path="res://assets/crosshair/crosshair062.png" id="1_texture"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.4, 1.0, 0.5, 0.9)
+albedo_texture = ExtResource("1_texture")
+disable_receive_shadows = true
+no_depth_test = true
+render_priority = 100
+
+[node name="ShootingHint" type="Sprite3D"]
+material_override = SubResource("StandardMaterial3D_1")
+pixel_size = 0.01
+billboard = 1
+texture_filter = 0
+texture = ExtResource("1_texture")

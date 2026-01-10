@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://bf26lmdy4sjpq"]
+
+[ext_resource type="PackedScene" uid="uid://bywvgyiq7y36f" path="res://assets/models/characters/hostage_1.fbx" id="1_yj0eg"]
+[ext_resource type="Material" uid="uid://blueplayer01" path="res://assets/materials/blue_player.tres" id="2_yxgw0"]
+
+[node name="hostage_1" instance=ExtResource("1_yj0eg")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
+
+[node name="1_material_9" parent="." index="0"]
+surface_material_override/0 = ExtResource("2_yxgw0")

@@ -1,16 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://chostage001"]
+[gd_scene load_steps=2 format=3 uid="uid://chostage001"]
 
-[ext_resource type="Script" path="res://src/entities/Hostage.gd" id="1_script"]
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_hostage"]
-size = Vector3(1.5, 3.0, 0.5)
+[ext_resource type="Script" uid="uid://wsqlse5wedua" path="res://src/entities/Hostage.gd" id="1_script"]
 
 [node name="Hostage" type="StaticBody3D"]
 script = ExtResource("1_script")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-shape = SubResource("BoxShape3D_hostage")
-
-[node name="Sprite3D" type="Sprite3D" parent="."]
-pixel_size = 0.005
-billboard = 1

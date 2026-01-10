@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://dvjt1fsh63rvx"]
+
+[ext_resource type="PackedScene" uid="uid://c3dxh3r7egafb" path="res://assets/models/characters/enemy_8.fbx" id="1_yt8xh"]
+[ext_resource type="Material" uid="uid://redglow001" path="res://assets/materials/red_glow.tres" id="2_l2x7n"]
+
+[node name="enemy_8" instance=ExtResource("1_yt8xh")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
+
+[node name="1_material_5" parent="." index="0"]
+surface_material_override/0 = ExtResource("2_l2x7n")
