@@ -18,8 +18,10 @@ class_name Player
 
 ## 相机抖动配置
 @export_group("Camera Shake")
-@export var shake_intensity: float = 0.3  ## 抖动强度
-@export var shake_duration: float = 0.2  ## 抖动持续时间
+@export var shake_intensity: float = 0.3  ## 踢门抖动强度
+@export var shake_duration: float = 0.2  ## 踢门抖动持续时间
+@export var shoot_shake_intensity: float = 0.08  ## 射击抖动强度
+@export var shoot_shake_duration: float = 0.08  ## 射击抖动持续时间
 
 @onready var camera: Camera3D = $Camera3D
 
@@ -131,6 +133,9 @@ func _physics_process(_delta: float) -> void:
 func _shoot() -> void:
 	# 音效
 	AudioManager.play_sfx("fire")
+	
+	# 屏幕抖动（使用射击专用的较弱抖动）
+	shake_camera(shoot_shake_intensity, shoot_shake_duration)
 	
 	# 射线检测 - 使用鼠标位置而不是屏幕中心
 	var space_state := get_world_3d().direct_space_state
