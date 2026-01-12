@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://chud001" path="res://src/ui/HUD.tscn" id="6_hud"]
 [ext_resource type="PackedScene" uid="uid://cdoor001" path="res://src/entities/Door.tscn" id="7_door"]
 [ext_resource type="PackedScene" uid="uid://c7prltiv3gva" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Door_Frame.fbx" id="7_sndxx"]
-[ext_resource type="Script" path="res://src/systems/SpawnArea.gd" id="8_spawn_area"]
+[ext_resource type="Script" uid="uid://dqtv5n3jnwtsg" path="res://src/systems/SpawnArea.gd" id="8_spawn_area"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sndxx"]
 sky_top_color = Color(1, 1, 1, 1)
@@ -277,6 +277,8 @@ transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, -0.632, 0, -7.5)
 
 [node name="Door_Frame2" parent="." instance=ExtResource("7_sndxx")]
 transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, -0.632, 0, -23)
+
+[node name="SceneBuilderTemp" type="Node" parent="."]
 
 [connection signal="pressed" from="UI/StartUI/VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
 [connection signal="pressed" from="UI/GameOverUI/VBoxContainer/RestartButton" to="." method="_on_restart_button_pressed"]

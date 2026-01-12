@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="CollectionNames" load_steps=2 format=3 uid="uid://cpc43r1aoychw"]
+
+[ext_resource type="Script" uid="uid://bbqiktl78acmh" path="res://addons/SceneBuilder/scene_builder_collections.gd" id="1_gy6hc"]
+
+[resource]
+script = ExtResource("1_gy6hc")
+name_01 = "Office1"
+name_02 = "Office2"
