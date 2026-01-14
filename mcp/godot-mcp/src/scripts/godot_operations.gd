@@ -35,6 +35,24 @@ func _init():
     var operation = args[operation_index]
     var params_json = args[params_index]
     
+    # Support reading JSON from file if it starts with @
+    if params_json.begins_with("@"):
+        var file_path = params_json.substr(1)
+        if not file_path.begins_with("res://") and not file_path.begins_with("/") and not file_path.begins_with("C:") and not file_path.begins_with("D:"):
+            file_path = "res://" + file_path
+        if FileAccess.file_exists(file_path):
+            var file = FileAccess.open(file_path, FileAccess.READ)
+            if file:
+                params_json = file.get_as_text()
+                file.close()
+                log_info("Read JSON from file: " + file_path)
+            else:
+                log_error("Failed to open file: " + file_path)
+                quit(1)
+        else:
+            log_error("File not found: " + file_path)
+            quit(1)
+    
     log_info("Operation: " + operation)
     log_debug("Params JSON: " + params_json)
     
@@ -50,7 +68,8 @@ func _init():
         log_error("JSON Error: " + json.get_error_message() + " at line " + str(json.get_error_line()))
         quit(1)
     
-    if not params:
+    # Check if params is null (not just empty - empty dict {} is valid)
+    if params == null:
         log_error("Failed to parse JSON parameters: " + params_json)
         quit(1)
     
@@ -71,6 +90,19 @@ func _init():
             get_uid(params)
         "resave_resources":
             resave_resources(params)
+        # SceneBuilder operations
+        "list_collections":
+            list_collections(params)
+        "list_collection_items":
+            list_collection_items(params)
+        "get_item_info":
+            get_item_info(params)
+        "create_scene_builder_item":
+            create_scene_builder_item(params)
+        "place_item":
+            place_item(params)
+        "place_items_batch":
+            place_items_batch(params)
         _:
             log_error("Unknown operation: " + operation)
             quit(1)
@@ -1190,3 +1222,782 @@ func save_scene(params):
             printerr("Failed to save scene: " + str(error))
     else:
         printerr("Failed to pack scene: " + str(result))
+
+# ============================================================================
+# SceneBuilder Operations
+# ============================================================================
+
+# Get the SceneBuilder config root directory
+func get_scene_builder_root_dir() -> String:
+    # Default SceneBuilder data directory
+    return "res://Data/SceneBuilder/"
+
+# List all SceneBuilder collections
+func list_collections(params):
+    print("Listing SceneBuilder collections...")
+    
+    var root_dir = get_scene_builder_root_dir()
+    if params.has("root_dir"):
+        root_dir = params.root_dir
+        if not root_dir.begins_with("res://"):
+            root_dir = "res://" + root_dir
+        if not root_dir.ends_with("/"):
+            root_dir += "/"
+    
+    if debug_mode:
+        print("SceneBuilder root directory: " + root_dir)
+    
+    var collections = []
+    var dir = DirAccess.open(root_dir)
+    
+    if dir == null:
+        var error = DirAccess.get_open_error()
+        printerr("Failed to open SceneBuilder directory: " + root_dir)
+        printerr("Error: " + str(error))
+        var result = {
+            "success": false,
+            "error": "Failed to open SceneBuilder directory",
+            "collections": []
+        }
+        print(JSON.stringify(result))
+        return
+    
+    dir.list_dir_begin()
+    var folder_name = dir.get_next()
+    
+    while folder_name != "":
+        if dir.current_is_dir() and not folder_name.begins_with("."):
+            if debug_mode:
+                print("Found collection folder: " + folder_name)
+            
+            # Count items in the collection
+            var collection_path = root_dir + folder_name + "/"
+            var item_count = 0
+            var items_dir = DirAccess.open(collection_path)
+            
+            if items_dir:
+                items_dir.list_dir_begin()
+                var item_name = items_dir.get_next()
+                while item_name != "":
+                    if not items_dir.current_is_dir() and item_name.ends_with(".tres"):
+                        item_count += 1
+                    item_name = items_dir.get_next()
+                items_dir.list_dir_end()
+            
+            collections.append({
+                "name": folder_name,
+                "path": collection_path,
+                "item_count": item_count
+            })
+        
+        folder_name = dir.get_next()
+    
+    dir.list_dir_end()
+    
+    var result = {
+        "success": true,
+        "root_dir": root_dir,
+        "collections": collections,
+        "total_collections": collections.size()
+    }
+    
+    print(JSON.stringify(result))
+
+# List items in a specific collection
+func list_collection_items(params):
+    if not params.has("collection_name"):
+        printerr("collection_name is required")
+        quit(1)
+    
+    var collection_name = params.collection_name
+    print("Listing items in collection: " + collection_name)
+    
+    var root_dir = get_scene_builder_root_dir()
+    if params.has("root_dir"):
+        root_dir = params.root_dir
+        if not root_dir.begins_with("res://"):
+            root_dir = "res://" + root_dir
+        if not root_dir.ends_with("/"):
+            root_dir += "/"
+    
+    var collection_path = root_dir + collection_name + "/"
+    
+    if debug_mode:
+        print("Collection path: " + collection_path)
+    
+    var items = []
+    var dir = DirAccess.open(collection_path)
+    
+    if dir == null:
+        var error = DirAccess.get_open_error()
+        printerr("Failed to open collection directory: " + collection_path)
+        printerr("Error: " + str(error))
+        var result = {
+            "success": false,
+            "error": "Collection not found: " + collection_name,
+            "items": []
+        }
+        print(JSON.stringify(result))
+        return
+    
+    dir.list_dir_begin()
+    var file_name = dir.get_next()
+    
+    while file_name != "":
+        if not dir.current_is_dir() and file_name.ends_with(".tres"):
+            var item_path = collection_path + file_name
+            if debug_mode:
+                print("Found item: " + item_path)
+            
+            # Load the SceneBuilderItem resource
+            var item = load(item_path)
+            if item:
+                var item_info = {
+                    "name": item.item_name if item.get("item_name") else file_name.replace(".tres", ""),
+                    "file": file_name,
+                    "path": item_path,
+                    "uid": item.uid if item.get("uid") else "",
+                    "has_texture": item.texture != null if item.get("texture") else false
+                }
+                items.append(item_info)
+            else:
+                if debug_mode:
+                    print("Failed to load item: " + item_path)
+        
+        file_name = dir.get_next()
+    
+    dir.list_dir_end()
+    
+    var result = {
+        "success": true,
+        "collection_name": collection_name,
+        "collection_path": collection_path,
+        "items": items,
+        "total_items": items.size()
+    }
+    
+    print(JSON.stringify(result))
+
+# Get detailed info about a specific SceneBuilderItem
+func get_item_info(params):
+    if not params.has("collection_name") or not params.has("item_name"):
+        printerr("collection_name and item_name are required")
+        quit(1)
+    
+    var collection_name = params.collection_name
+    var item_name = params.item_name
+    print("Getting info for item: " + collection_name + "/" + item_name)
+    
+    var root_dir = get_scene_builder_root_dir()
+    if params.has("root_dir"):
+        root_dir = params.root_dir
+        if not root_dir.begins_with("res://"):
+            root_dir = "res://" + root_dir
+        if not root_dir.ends_with("/"):
+            root_dir += "/"
+    
+    var item_path = root_dir + collection_name + "/" + item_name + ".tres"
+    
+    if debug_mode:
+        print("Item path: " + item_path)
+    
+    if not FileAccess.file_exists(item_path):
+        printerr("Item not found: " + item_path)
+        var result = {
+            "success": false,
+            "error": "Item not found: " + item_name
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var item = load(item_path)
+    if not item:
+        printerr("Failed to load item: " + item_path)
+        var result = {
+            "success": false,
+            "error": "Failed to load item resource"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var result = {
+        "success": true,
+        "item_path": item_path,
+        "collection_name": item.collection_name if item.get("collection_name") else collection_name,
+        "item_name": item.item_name if item.get("item_name") else item_name,
+        "uid": item.uid if item.get("uid") else "",
+        "has_texture": item.texture != null if item.get("texture") else false,
+        "use_random_vertical_offset": item.use_random_vertical_offset if item.get("use_random_vertical_offset") != null else false,
+        "use_random_rotation": item.use_random_rotation if item.get("use_random_rotation") != null else false,
+        "use_random_scale": item.use_random_scale if item.get("use_random_scale") != null else false,
+        "random_offset_y_min": item.random_offset_y_min if item.get("random_offset_y_min") != null else 0.0,
+        "random_offset_y_max": item.random_offset_y_max if item.get("random_offset_y_max") != null else 0.0,
+        "random_rot_x": item.random_rot_x if item.get("random_rot_x") != null else 0.0,
+        "random_rot_y": item.random_rot_y if item.get("random_rot_y") != null else 0.0,
+        "random_rot_z": item.random_rot_z if item.get("random_rot_z") != null else 0.0,
+        "random_scale_min": item.random_scale_min if item.get("random_scale_min") != null else 0.9,
+        "random_scale_max": item.random_scale_max if item.get("random_scale_max") != null else 1.1
+    }
+    
+    print(JSON.stringify(result))
+
+# Create a new SceneBuilderItem from a scene
+func create_scene_builder_item(params):
+    if not params.has("collection_name") or not params.has("scene_path"):
+        printerr("collection_name and scene_path are required")
+        quit(1)
+    
+    var collection_name = params.collection_name
+    var scene_path = params.scene_path
+    
+    if not scene_path.begins_with("res://"):
+        scene_path = "res://" + scene_path
+    
+    print("Creating SceneBuilderItem from scene: " + scene_path)
+    
+    # Verify the scene exists
+    if not FileAccess.file_exists(scene_path):
+        printerr("Scene file not found: " + scene_path)
+        var result = {
+            "success": false,
+            "error": "Scene file not found: " + scene_path
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var root_dir = get_scene_builder_root_dir()
+    if params.has("root_dir"):
+        root_dir = params.root_dir
+        if not root_dir.begins_with("res://"):
+            root_dir = "res://" + root_dir
+        if not root_dir.ends_with("/"):
+            root_dir += "/"
+    
+    # Create collection directory if it doesn't exist
+    var collection_path = root_dir + collection_name + "/"
+    var dir = DirAccess.open(root_dir)
+    
+    if dir == null:
+        # Try to create the root directory
+        var make_dir_error = DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(root_dir))
+        if make_dir_error != OK:
+            printerr("Failed to create SceneBuilder root directory: " + root_dir)
+            var result = {
+                "success": false,
+                "error": "Failed to create directory"
+            }
+            print(JSON.stringify(result))
+            return
+        dir = DirAccess.open(root_dir)
+    
+    if not dir.dir_exists(collection_name):
+        var make_dir_error = dir.make_dir(collection_name)
+        if make_dir_error != OK:
+            printerr("Failed to create collection directory: " + collection_path)
+            var result = {
+                "success": false,
+                "error": "Failed to create collection directory"
+            }
+            print(JSON.stringify(result))
+            return
+    
+    # Get the item name from the scene file name or params
+    var item_name = params.item_name if params.has("item_name") else scene_path.get_file().replace(".tscn", "")
+    
+    if debug_mode:
+        print("Item name: " + item_name)
+        print("Collection path: " + collection_path)
+    
+    # Get the UID of the scene
+    var scene_uid = ""
+    var uid_path = scene_path + ".uid"
+    if FileAccess.file_exists(uid_path):
+        var f = FileAccess.open(uid_path, FileAccess.READ)
+        if f:
+            scene_uid = f.get_as_text().strip_edges()
+            f.close()
+    
+    # If no .uid file, try to get UID from ResourceLoader
+    if scene_uid.is_empty():
+        var res_uid = ResourceLoader.get_resource_uid(scene_path)
+        if res_uid != ResourceUID.INVALID_ID:
+            scene_uid = ResourceUID.id_to_text(res_uid)
+    
+    if debug_mode:
+        print("Scene UID: " + scene_uid)
+    
+    # Create the SceneBuilderItem resource
+    # Since we can't instantiate custom Resource classes directly in headless mode,
+    # we'll create a .tres file manually
+    var item_file_path = collection_path + item_name + ".tres"
+    
+    # Build the .tres file content
+    var tres_content = """[gd_resource type="Resource" script_class="SceneBuilderItem" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/SceneBuilder/scene_builder_item.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+collection_name = "%s"
+item_name = "%s"
+uid = "%s"
+use_random_vertical_offset = %s
+use_random_rotation = %s
+use_random_scale = %s
+random_offset_y_min = %s
+random_offset_y_max = %s
+random_rot_x = %s
+random_rot_y = %s
+random_rot_z = %s
+random_scale_min = %s
+random_scale_max = %s
+""" % [
+        collection_name,
+        item_name,
+        scene_uid,
+        "true" if params.get("use_random_vertical_offset", false) else "false",
+        "true" if params.get("use_random_rotation", false) else "false",
+        "true" if params.get("use_random_scale", false) else "false",
+        str(params.get("random_offset_y_min", 0.0)),
+        str(params.get("random_offset_y_max", 0.0)),
+        str(params.get("random_rot_x", 0.0)),
+        str(params.get("random_rot_y", 0.0)),
+        str(params.get("random_rot_z", 0.0)),
+        str(params.get("random_scale_min", 0.9)),
+        str(params.get("random_scale_max", 1.1))
+    ]
+    
+    var f = FileAccess.open(item_file_path, FileAccess.WRITE)
+    if f == null:
+        printerr("Failed to create item file: " + item_file_path)
+        var result = {
+            "success": false,
+            "error": "Failed to create item file"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    f.store_string(tres_content)
+    f.close()
+    
+    if debug_mode:
+        print("Created item file: " + item_file_path)
+    
+    var result = {
+        "success": true,
+        "item_path": item_file_path,
+        "collection_name": collection_name,
+        "item_name": item_name,
+        "scene_path": scene_path,
+        "scene_uid": scene_uid
+    }
+    
+    print(JSON.stringify(result))
+
+# Place a SceneBuilder item at a specific position
+func place_item(params):
+    if not params.has("target_scene") or not params.has("collection_name") or not params.has("item_name"):
+        printerr("target_scene, collection_name, and item_name are required")
+        quit(1)
+    
+    var target_scene_path = params.target_scene
+    if not target_scene_path.begins_with("res://"):
+        target_scene_path = "res://" + target_scene_path
+    
+    var collection_name = params.collection_name
+    var item_name = params.item_name
+    
+    print("Placing item: " + collection_name + "/" + item_name + " in " + target_scene_path)
+    
+    # Get position, rotation, scale from params
+    var position = Vector3.ZERO
+    if params.has("position"):
+        var pos = params.position
+        if pos is Dictionary:
+            position = Vector3(pos.get("x", 0), pos.get("y", 0), pos.get("z", 0))
+        elif pos is Array and pos.size() >= 3:
+            position = Vector3(pos[0], pos[1], pos[2])
+    
+    var rotation = Vector3.ZERO
+    if params.has("rotation"):
+        var rot = params.rotation
+        if rot is Dictionary:
+            rotation = Vector3(rot.get("x", 0), rot.get("y", 0), rot.get("z", 0))
+        elif rot is Array and rot.size() >= 3:
+            rotation = Vector3(rot[0], rot[1], rot[2])
+    
+    var scale_val = Vector3.ONE
+    if params.has("scale"):
+        var scl = params.scale
+        if scl is Dictionary:
+            scale_val = Vector3(scl.get("x", 1), scl.get("y", 1), scl.get("z", 1))
+        elif scl is Array and scl.size() >= 3:
+            scale_val = Vector3(scl[0], scl[1], scl[2])
+        elif scl is float or scl is int:
+            scale_val = Vector3(scl, scl, scl)
+    
+    if debug_mode:
+        print("Position: " + str(position))
+        print("Rotation: " + str(rotation))
+        print("Scale: " + str(scale_val))
+    
+    # Load the SceneBuilderItem to get the scene UID
+    var root_dir = get_scene_builder_root_dir()
+    var item_path = root_dir + collection_name + "/" + item_name + ".tres"
+    
+    if not FileAccess.file_exists(item_path):
+        printerr("Item not found: " + item_path)
+        var result = {
+            "success": false,
+            "error": "Item not found: " + item_name
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var item = load(item_path)
+    if not item:
+        printerr("Failed to load item: " + item_path)
+        var result = {
+            "success": false,
+            "error": "Failed to load item"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var scene_uid = item.uid if item.get("uid") else ""
+    
+    if scene_uid.is_empty():
+        printerr("Item has no scene UID: " + item_path)
+        var result = {
+            "success": false,
+            "error": "Item has no scene UID"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    # Load the scene to place the item
+    var item_scene = load(scene_uid)
+    if not item_scene:
+        printerr("Failed to load item scene from UID: " + scene_uid)
+        var result = {
+            "success": false,
+            "error": "Failed to load item scene"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    # Load the target scene
+    if not FileAccess.file_exists(target_scene_path):
+        printerr("Target scene not found: " + target_scene_path)
+        var result = {
+            "success": false,
+            "error": "Target scene not found"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var target_scene = load(target_scene_path)
+    if not target_scene:
+        printerr("Failed to load target scene: " + target_scene_path)
+        var result = {
+            "success": false,
+            "error": "Failed to load target scene"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var target_root = target_scene.instantiate()
+    
+    # Get parent node path
+    var parent_path = params.get("parent_path", "")
+    var parent_node = target_root
+    if not parent_path.is_empty() and parent_path != "root":
+        if parent_path.begins_with("root/"):
+            parent_path = parent_path.substr(5)
+        parent_node = target_root.get_node_or_null(parent_path)
+        if parent_node == null:
+            printerr("Parent node not found: " + parent_path)
+            var result = {
+                "success": false,
+                "error": "Parent node not found: " + parent_path
+            }
+            print(JSON.stringify(result))
+            return
+    
+    # Instance the item scene
+    var instance = item_scene.instantiate()
+    
+    # Apply transform
+    if instance is Node3D:
+        instance.position = position
+        instance.rotation_degrees = rotation
+        instance.scale = scale_val
+        
+        # Apply random transform if enabled
+        if params.get("apply_random_transform", false):
+            if item.get("use_random_vertical_offset"):
+                var offset = randf_range(item.random_offset_y_min, item.random_offset_y_max)
+                instance.position.y += offset
+            
+            if item.get("use_random_rotation"):
+                instance.rotation_degrees.x += randf_range(-item.random_rot_x, item.random_rot_x)
+                instance.rotation_degrees.y += randf_range(-item.random_rot_y, item.random_rot_y)
+                instance.rotation_degrees.z += randf_range(-item.random_rot_z, item.random_rot_z)
+            
+            if item.get("use_random_scale"):
+                var random_scale = randf_range(item.random_scale_min, item.random_scale_max)
+                instance.scale *= random_scale
+    
+    # Set instance name
+    var instance_name = params.get("instance_name", item_name)
+    instance.name = instance_name
+    
+    # Add to parent
+    parent_node.add_child(instance)
+    instance.owner = target_root
+    
+    # Note: Do NOT recursively set owner for descendants of an instanced scene.
+    # The children are part of the PackedScene instance and should not have their
+    # owner set to target_root, otherwise they will be saved as separate nodes
+    # in the .tscn file, causing "node name clashes" errors when loading.
+    
+    if debug_mode:
+        print("Added instance: " + instance.name + " to " + parent_node.name)
+    
+    # Save the scene
+    var packed_scene = PackedScene.new()
+    var pack_result = packed_scene.pack(target_root)
+    
+    if pack_result != OK:
+        printerr("Failed to pack scene: " + str(pack_result))
+        var result = {
+            "success": false,
+            "error": "Failed to pack scene"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var save_error = ResourceSaver.save(packed_scene, target_scene_path)
+    
+    if save_error != OK:
+        printerr("Failed to save scene: " + str(save_error))
+        var result = {
+            "success": false,
+            "error": "Failed to save scene"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var result = {
+        "success": true,
+        "target_scene": target_scene_path,
+        "item_name": item_name,
+        "instance_name": instance_name,
+        "position": {"x": position.x, "y": position.y, "z": position.z},
+        "rotation": {"x": rotation.x, "y": rotation.y, "z": rotation.z},
+        "scale": {"x": scale_val.x, "y": scale_val.y, "z": scale_val.z}
+    }
+    
+    print(JSON.stringify(result))
+
+# Helper function to set owner recursively
+func set_owner_recursive(node, owner):
+    for child in node.get_children():
+        child.owner = owner
+        set_owner_recursive(child, owner)
+
+# Place multiple items in batch
+func place_items_batch(params):
+    if not params.has("target_scene") or not params.has("placements"):
+        printerr("target_scene and placements are required")
+        quit(1)
+    
+    var target_scene_path = params.target_scene
+    if not target_scene_path.begins_with("res://"):
+        target_scene_path = "res://" + target_scene_path
+    
+    var placements = params.placements
+    
+    print("Batch placing " + str(placements.size()) + " items in " + target_scene_path)
+    
+    # Load the target scene
+    if not FileAccess.file_exists(target_scene_path):
+        printerr("Target scene not found: " + target_scene_path)
+        var result = {
+            "success": false,
+            "error": "Target scene not found"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var target_scene = load(target_scene_path)
+    if not target_scene:
+        printerr("Failed to load target scene: " + target_scene_path)
+        var result = {
+            "success": false,
+            "error": "Failed to load target scene"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var target_root = target_scene.instantiate()
+    var root_dir = get_scene_builder_root_dir()
+    
+    var placed_count = 0
+    var errors = []
+    
+    # Cache for loaded item scenes
+    var scene_cache = {}
+    var item_cache = {}
+    
+    for i in range(placements.size()):
+        var placement = placements[i]
+        
+        var collection_name = placement.get("collection_name", "")
+        var item_name = placement.get("item_name", "")
+        
+        if collection_name.is_empty() or item_name.is_empty():
+            errors.append({"index": i, "error": "Missing collection_name or item_name"})
+            continue
+        
+        var item_key = collection_name + "/" + item_name
+        
+        # Load item if not cached
+        if not item_cache.has(item_key):
+            var item_path = root_dir + collection_name + "/" + item_name + ".tres"
+            if not FileAccess.file_exists(item_path):
+                errors.append({"index": i, "error": "Item not found: " + item_key})
+                continue
+            
+            var item = load(item_path)
+            if not item:
+                errors.append({"index": i, "error": "Failed to load item: " + item_key})
+                continue
+            
+            item_cache[item_key] = item
+            
+            # Load the scene
+            var scene_uid = item.uid if item.get("uid") else ""
+            if scene_uid.is_empty():
+                errors.append({"index": i, "error": "Item has no scene UID: " + item_key})
+                continue
+            
+            var item_scene = load(scene_uid)
+            if not item_scene:
+                errors.append({"index": i, "error": "Failed to load scene: " + scene_uid})
+                continue
+            
+            scene_cache[item_key] = item_scene
+        
+        if not scene_cache.has(item_key):
+            continue
+        
+        var item_scene = scene_cache[item_key]
+        var item = item_cache[item_key]
+        
+        # Get position, rotation, scale
+        var position = Vector3.ZERO
+        if placement.has("position"):
+            var pos = placement.position
+            if pos is Dictionary:
+                position = Vector3(pos.get("x", 0), pos.get("y", 0), pos.get("z", 0))
+            elif pos is Array and pos.size() >= 3:
+                position = Vector3(pos[0], pos[1], pos[2])
+        
+        var rotation = Vector3.ZERO
+        if placement.has("rotation"):
+            var rot = placement.rotation
+            if rot is Dictionary:
+                rotation = Vector3(rot.get("x", 0), rot.get("y", 0), rot.get("z", 0))
+            elif rot is Array and rot.size() >= 3:
+                rotation = Vector3(rot[0], rot[1], rot[2])
+        
+        var scale_val = Vector3.ONE
+        if placement.has("scale"):
+            var scl = placement.scale
+            if scl is Dictionary:
+                scale_val = Vector3(scl.get("x", 1), scl.get("y", 1), scl.get("z", 1))
+            elif scl is Array and scl.size() >= 3:
+                scale_val = Vector3(scl[0], scl[1], scl[2])
+            elif scl is float or scl is int:
+                scale_val = Vector3(scl, scl, scl)
+        
+        # Get parent node
+        var parent_path = placement.get("parent_path", "")
+        var parent_node = target_root
+        if not parent_path.is_empty() and parent_path != "root":
+            if parent_path.begins_with("root/"):
+                parent_path = parent_path.substr(5)
+            parent_node = target_root.get_node_or_null(parent_path)
+            if parent_node == null:
+                errors.append({"index": i, "error": "Parent node not found: " + parent_path})
+                continue
+        
+        # Instance and configure
+        var instance = item_scene.instantiate()
+        
+        if instance is Node3D:
+            instance.position = position
+            instance.rotation_degrees = rotation
+            instance.scale = scale_val
+            
+            # Apply random transform if enabled
+            if placement.get("apply_random_transform", false):
+                if item.get("use_random_vertical_offset"):
+                    var offset = randf_range(item.random_offset_y_min, item.random_offset_y_max)
+                    instance.position.y += offset
+                
+                if item.get("use_random_rotation"):
+                    instance.rotation_degrees.x += randf_range(-item.random_rot_x, item.random_rot_x)
+                    instance.rotation_degrees.y += randf_range(-item.random_rot_y, item.random_rot_y)
+                    instance.rotation_degrees.z += randf_range(-item.random_rot_z, item.random_rot_z)
+                
+                if item.get("use_random_scale"):
+                    var random_scale = randf_range(item.random_scale_min, item.random_scale_max)
+                    instance.scale *= random_scale
+        
+        var instance_name = placement.get("instance_name", item_name + "_" + str(i))
+        instance.name = instance_name
+        
+        parent_node.add_child(instance)
+        instance.owner = target_root
+        # Note: Do NOT recursively set owner for descendants of an instanced scene.
+        # The children are part of the PackedScene instance and should not have their
+        # owner set to target_root, otherwise they will be saved as separate nodes
+        # in the .tscn file, causing "node name clashes" errors when loading.
+        
+        placed_count += 1
+    
+    # Save the scene
+    var packed_scene = PackedScene.new()
+    var pack_result = packed_scene.pack(target_root)
+    
+    if pack_result != OK:
+        printerr("Failed to pack scene: " + str(pack_result))
+        var result = {
+            "success": false,
+            "error": "Failed to pack scene"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var save_error = ResourceSaver.save(packed_scene, target_scene_path)
+    
+    if save_error != OK:
+        printerr("Failed to save scene: " + str(save_error))
+        var result = {
+            "success": false,
+            "error": "Failed to save scene"
+        }
+        print(JSON.stringify(result))
+        return
+    
+    var result = {
+        "success": true,
+        "target_scene": target_scene_path,
+        "placed_count": placed_count,
+        "total_requested": placements.size(),
+        "errors": errors
+    }
+    
+    print(JSON.stringify(result))

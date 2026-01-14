@@ -27,6 +27,9 @@ import {
 const DEBUG_MODE: boolean = process.env.DEBUG === 'true';
 const GODOT_DEBUG_MODE: boolean = true; // Always use GODOT DEBUG MODE
 
+// Default project path from environment variable
+const DEFAULT_PROJECT_PATH: string | undefined = process.env.GODOT_PROJECT_PATH;
+
 const execAsync = promisify(exec);
 
 // Derive __filename and __dirname in ESM
@@ -66,6 +69,7 @@ class GodotServer {
   private server: Server;
   private activeProcess: GodotProcess | null = null;
   private godotPath: string | null = null;
+  private defaultProjectPath: string | null = null;
   private operationsScriptPath: string;
   private validatedPaths: Map<string, boolean> = new Map();
   private strictPathValidation: boolean = false;
@@ -90,6 +94,25 @@ class GodotServer {
     'directory': 'directory',
     'recursive': 'recursive',
     'scene': 'scene',
+    // SceneBuilder parameter mappings
+    'collection_name': 'collectionName',
+    'item_name': 'itemName',
+    'root_dir': 'rootDir',
+    'target_scene': 'targetScene',
+    'parent_path': 'parentPath',
+    'instance_name': 'instanceName',
+    'apply_random_transform': 'applyRandomTransform',
+    'use_random_vertical_offset': 'useRandomVerticalOffset',
+    'use_random_rotation': 'useRandomRotation',
+    'use_random_scale': 'useRandomScale',
+    'random_offset_y_min': 'randomOffsetYMin',
+    'random_offset_y_max': 'randomOffsetYMax',
+    'random_rot_x': 'randomRotX',
+    'random_rot_y': 'randomRotY',
+    'random_rot_z': 'randomRotZ',
+    'random_scale_min': 'randomScaleMin',
+    'random_scale_max': 'randomScaleMax',
+    'placements': 'placements',
   };
 
   /**
@@ -136,6 +159,18 @@ class GodotServer {
     this.operationsScriptPath = join(__dirname, 'scripts', 'godot_operations.gd');
     if (debugMode) console.debug(`[DEBUG] Operations script path: ${this.operationsScriptPath}`);
 
+    // Initialize default project path from environment variable
+    if (DEFAULT_PROJECT_PATH) {
+      const normalizedPath = normalize(DEFAULT_PROJECT_PATH);
+      const projectFile = join(normalizedPath, 'project.godot');
+      if (existsSync(projectFile)) {
+        this.defaultProjectPath = normalizedPath;
+        console.log(`[SERVER] Default project path set: ${this.defaultProjectPath}`);
+      } else {
+        console.warn(`[SERVER] GODOT_PROJECT_PATH is set but not a valid Godot project: ${normalizedPath}`);
+      }
+    }
+
     // Initialize the MCP server
     this.server = new Server(
       {
@@ -169,6 +204,22 @@ class GodotServer {
     if (DEBUG_MODE) {
       console.debug(`[DEBUG] ${message}`);
     }
+  }
+
+  /**
+   * Resolve the project path, using the default if not provided
+   * @param providedPath The path provided by the user (may be undefined)
+   * @returns The resolved project path or null if none available
+   */
+  private resolveProjectPath(providedPath?: string): string | null {
+    if (providedPath) {
+      return normalize(providedPath);
+    }
+    if (this.defaultProjectPath) {
+      this.logDebug(`Using default project path: ${this.defaultProjectPath}`);
+      return this.defaultProjectPath;
+    }
+    return null;
   }
 
   /**
@@ -924,6 +975,265 @@ class GodotServer {
             required: ['projectPath'],
           },
         },
+        // SceneBuilder Tools
+        {
+          name: 'list_scene_builder_collections',
+          description: 'List all SceneBuilder collections in a Godot project. If GODOT_PROJECT_PATH env is set, projectPath is optional.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectPath: {
+                type: 'string',
+                description: 'Path to the Godot project directory (optional if GODOT_PROJECT_PATH env is set)',
+              },
+              rootDir: {
+                type: 'string',
+                description: 'Optional: Root directory for SceneBuilder data (default: res://Data/SceneBuilder/)',
+              },
+            },
+            required: [],
+          },
+        },
+        {
+          name: 'list_scene_builder_items',
+          description: 'List all items in a SceneBuilder collection. If GODOT_PROJECT_PATH env is set, projectPath is optional.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectPath: {
+                type: 'string',
+                description: 'Path to the Godot project directory (optional if GODOT_PROJECT_PATH env is set)',
+              },
+              collectionName: {
+                type: 'string',
+                description: 'Name of the collection to list items from',
+              },
+              rootDir: {
+                type: 'string',
+                description: 'Optional: Root directory for SceneBuilder data (default: res://Data/SceneBuilder/)',
+              },
+            },
+            required: ['collectionName'],
+          },
+        },
+        {
+          name: 'get_scene_builder_item',
+          description: 'Get detailed information about a SceneBuilder item. If GODOT_PROJECT_PATH env is set, projectPath is optional.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectPath: {
+                type: 'string',
+                description: 'Path to the Godot project directory (optional if GODOT_PROJECT_PATH env is set)',
+              },
+              collectionName: {
+                type: 'string',
+                description: 'Name of the collection',
+              },
+              itemName: {
+                type: 'string',
+                description: 'Name of the item',
+              },
+              rootDir: {
+                type: 'string',
+                description: 'Optional: Root directory for SceneBuilder data (default: res://Data/SceneBuilder/)',
+              },
+            },
+            required: ['collectionName', 'itemName'],
+          },
+        },
+        {
+          name: 'create_scene_builder_item',
+          description: 'Create a new SceneBuilder item from an existing scene. If GODOT_PROJECT_PATH env is set, projectPath is optional.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectPath: {
+                type: 'string',
+                description: 'Path to the Godot project directory (optional if GODOT_PROJECT_PATH env is set)',
+              },
+              collectionName: {
+                type: 'string',
+                description: 'Name of the collection to add the item to',
+              },
+              scenePath: {
+                type: 'string',
+                description: 'Path to the scene file (relative to project)',
+              },
+              itemName: {
+                type: 'string',
+                description: 'Optional: Name for the item (defaults to scene filename)',
+              },
+              useRandomVerticalOffset: {
+                type: 'boolean',
+                description: 'Enable random vertical offset for placement',
+              },
+              useRandomRotation: {
+                type: 'boolean',
+                description: 'Enable random rotation for placement',
+              },
+              useRandomScale: {
+                type: 'boolean',
+                description: 'Enable random scale for placement',
+              },
+              randomOffsetYMin: {
+                type: 'number',
+                description: 'Minimum random Y offset',
+              },
+              randomOffsetYMax: {
+                type: 'number',
+                description: 'Maximum random Y offset',
+              },
+              randomRotX: {
+                type: 'number',
+                description: 'Random rotation range for X axis (degrees)',
+              },
+              randomRotY: {
+                type: 'number',
+                description: 'Random rotation range for Y axis (degrees)',
+              },
+              randomRotZ: {
+                type: 'number',
+                description: 'Random rotation range for Z axis (degrees)',
+              },
+              randomScaleMin: {
+                type: 'number',
+                description: 'Minimum random scale factor',
+              },
+              randomScaleMax: {
+                type: 'number',
+                description: 'Maximum random scale factor',
+              },
+              rootDir: {
+                type: 'string',
+                description: 'Optional: Root directory for SceneBuilder data (default: res://Data/SceneBuilder/)',
+              },
+            },
+            required: ['collectionName', 'scenePath'],
+          },
+        },
+        {
+          name: 'place_scene_builder_item',
+          description: 'Place a SceneBuilder item at a specific position in a scene. If GODOT_PROJECT_PATH env is set, projectPath is optional.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectPath: {
+                type: 'string',
+                description: 'Path to the Godot project directory (optional if GODOT_PROJECT_PATH env is set)',
+              },
+              targetScene: {
+                type: 'string',
+                description: 'Path to the target scene file (relative to project)',
+              },
+              collectionName: {
+                type: 'string',
+                description: 'Name of the collection',
+              },
+              itemName: {
+                type: 'string',
+                description: 'Name of the item to place',
+              },
+              position: {
+                type: 'object',
+                description: 'Position as {x, y, z}',
+                properties: {
+                  x: { type: 'number' },
+                  y: { type: 'number' },
+                  z: { type: 'number' },
+                },
+              },
+              rotation: {
+                type: 'object',
+                description: 'Rotation in degrees as {x, y, z}',
+                properties: {
+                  x: { type: 'number' },
+                  y: { type: 'number' },
+                  z: { type: 'number' },
+                },
+              },
+              scale: {
+                type: 'object',
+                description: 'Scale as {x, y, z} or a single number for uniform scale',
+                properties: {
+                  x: { type: 'number' },
+                  y: { type: 'number' },
+                  z: { type: 'number' },
+                },
+              },
+              parentPath: {
+                type: 'string',
+                description: 'Optional: Path to parent node (e.g., "root/Level")',
+              },
+              instanceName: {
+                type: 'string',
+                description: 'Optional: Name for the placed instance',
+              },
+              applyRandomTransform: {
+                type: 'boolean',
+                description: 'Apply random transform settings from the item',
+              },
+            },
+            required: ['targetScene', 'collectionName', 'itemName'],
+          },
+        },
+        {
+          name: 'place_scene_builder_items_batch',
+          description: 'Place multiple SceneBuilder items in a scene at once. If GODOT_PROJECT_PATH env is set, projectPath is optional.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectPath: {
+                type: 'string',
+                description: 'Path to the Godot project directory (optional if GODOT_PROJECT_PATH env is set)',
+              },
+              targetScene: {
+                type: 'string',
+                description: 'Path to the target scene file (relative to project)',
+              },
+              placements: {
+                type: 'array',
+                description: 'Array of placement configurations',
+                items: {
+                  type: 'object',
+                  properties: {
+                    collectionName: { type: 'string' },
+                    itemName: { type: 'string' },
+                    position: {
+                      type: 'object',
+                      properties: {
+                        x: { type: 'number' },
+                        y: { type: 'number' },
+                        z: { type: 'number' },
+                      },
+                    },
+                    rotation: {
+                      type: 'object',
+                      properties: {
+                        x: { type: 'number' },
+                        y: { type: 'number' },
+                        z: { type: 'number' },
+                      },
+                    },
+                    scale: {
+                      type: 'object',
+                      properties: {
+                        x: { type: 'number' },
+                        y: { type: 'number' },
+                        z: { type: 'number' },
+                      },
+                    },
+                    parentPath: { type: 'string' },
+                    instanceName: { type: 'string' },
+                    applyRandomTransform: { type: 'boolean' },
+                  },
+                  required: ['collectionName', 'itemName'],
+                },
+              },
+            },
+            required: ['targetScene', 'placements'],
+          },
+        },
       ],
     }));
 
@@ -959,6 +1269,19 @@ class GodotServer {
           return await this.handleGetUid(request.params.arguments);
         case 'update_project_uids':
           return await this.handleUpdateProjectUids(request.params.arguments);
+        // SceneBuilder handlers
+        case 'list_scene_builder_collections':
+          return await this.handleListSceneBuilderCollections(request.params.arguments);
+        case 'list_scene_builder_items':
+          return await this.handleListSceneBuilderItems(request.params.arguments);
+        case 'get_scene_builder_item':
+          return await this.handleGetSceneBuilderItem(request.params.arguments);
+        case 'create_scene_builder_item':
+          return await this.handleCreateSceneBuilderItem(request.params.arguments);
+        case 'place_scene_builder_item':
+          return await this.handlePlaceSceneBuilderItem(request.params.arguments);
+        case 'place_scene_builder_items_batch':
+          return await this.handlePlaceSceneBuilderItemsBatch(request.params.arguments);
         default:
           throw new McpError(
             ErrorCode.MethodNotFound,
@@ -2150,6 +2473,559 @@ class GodotServer {
           'Check if the GODOT_PATH environment variable is set correctly',
           'Verify the project path is accessible',
         ]
+      );
+    }
+  }
+
+  // ============================================================================
+  // SceneBuilder Handlers
+  // ============================================================================
+
+  /**
+   * Handle the list_scene_builder_collections tool
+   */
+  private async handleListSceneBuilderCollections(args: any) {
+    args = this.normalizeParameters(args);
+
+    // Resolve project path (use default if not provided)
+    const projectPath = this.resolveProjectPath(args.projectPath);
+    if (!projectPath) {
+      return this.createErrorResponse(
+        'Project path is required. Either provide projectPath or set GODOT_PROJECT_PATH environment variable.',
+        ['Provide a valid path to a Godot project directory', 'Set GODOT_PROJECT_PATH environment variable']
+      );
+    }
+
+    if (!this.validatePath(projectPath)) {
+      return this.createErrorResponse(
+        'Invalid project path',
+        ['Provide a valid path without ".." or other potentially unsafe characters']
+      );
+    }
+
+    try {
+      const projectFile = join(args.projectPath, 'project.godot');
+      if (!existsSync(projectFile)) {
+        return this.createErrorResponse(
+          `Not a valid Godot project: ${projectPath}`,
+          ['Ensure the path points to a directory containing a project.godot file']
+        );
+      }
+
+      const params: any = {};
+      if (args.rootDir) {
+        params.rootDir = args.rootDir;
+      }
+
+      const { stdout, stderr } = await this.executeOperation('list_collections', params, projectPath);
+
+      if (stderr && stderr.includes('[ERROR]')) {
+        return this.createErrorResponse(
+          `Failed to list collections: ${stderr}`,
+          ['Check if the SceneBuilder data directory exists']
+        );
+      }
+
+      // Parse the JSON output from the script
+      const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: stdout,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to list collections: ${error?.message || 'Unknown error'}`,
+        ['Ensure Godot is installed correctly', 'Verify the project path is accessible']
+      );
+    }
+  }
+
+  /**
+   * Handle the list_scene_builder_items tool
+   */
+  private async handleListSceneBuilderItems(args: any) {
+    args = this.normalizeParameters(args);
+
+    // Resolve project path (use default if not provided)
+    const projectPath = this.resolveProjectPath(args.projectPath);
+    if (!projectPath) {
+      return this.createErrorResponse(
+        'Project path is required. Either provide projectPath or set GODOT_PROJECT_PATH environment variable.',
+        ['Provide a valid path to a Godot project directory', 'Set GODOT_PROJECT_PATH environment variable']
+      );
+    }
+
+    if (!args.collectionName) {
+      return this.createErrorResponse(
+        'Collection name is required',
+        ['Provide collectionName']
+      );
+    }
+
+    if (!this.validatePath(projectPath)) {
+      return this.createErrorResponse(
+        'Invalid project path',
+        ['Provide a valid path without ".." or other potentially unsafe characters']
+      );
+    }
+
+    try {
+      const projectFile = join(projectPath, 'project.godot');
+      if (!existsSync(projectFile)) {
+        return this.createErrorResponse(
+          `Not a valid Godot project: ${projectPath}`,
+          ['Ensure the path points to a directory containing a project.godot file']
+        );
+      }
+
+      const params: any = {
+        collectionName: args.collectionName,
+      };
+      if (args.rootDir) {
+        params.rootDir = args.rootDir;
+      }
+
+      const { stdout, stderr } = await this.executeOperation('list_collection_items', params, projectPath);
+
+      if (stderr && stderr.includes('[ERROR]')) {
+        return this.createErrorResponse(
+          `Failed to list items: ${stderr}`,
+          ['Check if the collection exists']
+        );
+      }
+
+      const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: stdout,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to list items: ${error?.message || 'Unknown error'}`,
+        ['Ensure Godot is installed correctly', 'Verify the project path is accessible']
+      );
+    }
+  }
+
+  /**
+   * Handle the get_scene_builder_item tool
+   */
+  private async handleGetSceneBuilderItem(args: any) {
+    args = this.normalizeParameters(args);
+
+    // Resolve project path (use default if not provided)
+    const projectPath = this.resolveProjectPath(args.projectPath);
+    if (!projectPath) {
+      return this.createErrorResponse(
+        'Project path is required. Either provide projectPath or set GODOT_PROJECT_PATH environment variable.',
+        ['Provide a valid path to a Godot project directory', 'Set GODOT_PROJECT_PATH environment variable']
+      );
+    }
+
+    if (!args.collectionName || !args.itemName) {
+      return this.createErrorResponse(
+        'Collection name and item name are required',
+        ['Provide collectionName and itemName']
+      );
+    }
+
+    if (!this.validatePath(projectPath)) {
+      return this.createErrorResponse(
+        'Invalid project path',
+        ['Provide a valid path without ".." or other potentially unsafe characters']
+      );
+    }
+
+    try {
+      const projectFile = join(projectPath, 'project.godot');
+      if (!existsSync(projectFile)) {
+        return this.createErrorResponse(
+          `Not a valid Godot project: ${projectPath}`,
+          ['Ensure the path points to a directory containing a project.godot file']
+        );
+      }
+
+      const params: any = {
+        collectionName: args.collectionName,
+        itemName: args.itemName,
+      };
+      if (args.rootDir) {
+        params.rootDir = args.rootDir;
+      }
+
+      const { stdout, stderr } = await this.executeOperation('get_item_info', params, projectPath);
+
+      if (stderr && stderr.includes('[ERROR]')) {
+        return this.createErrorResponse(
+          `Failed to get item info: ${stderr}`,
+          ['Check if the item exists']
+        );
+      }
+
+      const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: stdout,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to get item info: ${error?.message || 'Unknown error'}`,
+        ['Ensure Godot is installed correctly', 'Verify the project path is accessible']
+      );
+    }
+  }
+
+  /**
+   * Handle the create_scene_builder_item tool
+   */
+  private async handleCreateSceneBuilderItem(args: any) {
+    args = this.normalizeParameters(args);
+
+    // Resolve project path (use default if not provided)
+    const projectPath = this.resolveProjectPath(args.projectPath);
+    if (!projectPath) {
+      return this.createErrorResponse(
+        'Project path is required. Either provide projectPath or set GODOT_PROJECT_PATH environment variable.',
+        ['Provide a valid path to a Godot project directory', 'Set GODOT_PROJECT_PATH environment variable']
+      );
+    }
+
+    if (!args.collectionName || !args.scenePath) {
+      return this.createErrorResponse(
+        'Collection name and scene path are required',
+        ['Provide collectionName and scenePath']
+      );
+    }
+
+    if (!this.validatePath(projectPath) || !this.validatePath(args.scenePath)) {
+      return this.createErrorResponse(
+        'Invalid path',
+        ['Provide valid paths without ".." or other potentially unsafe characters']
+      );
+    }
+
+    try {
+      const projectFile = join(projectPath, 'project.godot');
+      if (!existsSync(projectFile)) {
+        return this.createErrorResponse(
+          `Not a valid Godot project: ${projectPath}`,
+          ['Ensure the path points to a directory containing a project.godot file']
+        );
+      }
+
+      const scenePath = join(projectPath, args.scenePath);
+      if (!existsSync(scenePath)) {
+        return this.createErrorResponse(
+          `Scene file does not exist: ${args.scenePath}`,
+          ['Ensure the scene path is correct']
+        );
+      }
+
+      const params: any = {
+        collectionName: args.collectionName,
+        scenePath: args.scenePath,
+      };
+
+      // Add optional parameters
+      if (args.itemName) params.itemName = args.itemName;
+      if (args.rootDir) params.rootDir = args.rootDir;
+      if (args.useRandomVerticalOffset !== undefined) params.useRandomVerticalOffset = args.useRandomVerticalOffset;
+      if (args.useRandomRotation !== undefined) params.useRandomRotation = args.useRandomRotation;
+      if (args.useRandomScale !== undefined) params.useRandomScale = args.useRandomScale;
+      if (args.randomOffsetYMin !== undefined) params.randomOffsetYMin = args.randomOffsetYMin;
+      if (args.randomOffsetYMax !== undefined) params.randomOffsetYMax = args.randomOffsetYMax;
+      if (args.randomRotX !== undefined) params.randomRotX = args.randomRotX;
+      if (args.randomRotY !== undefined) params.randomRotY = args.randomRotY;
+      if (args.randomRotZ !== undefined) params.randomRotZ = args.randomRotZ;
+      if (args.randomScaleMin !== undefined) params.randomScaleMin = args.randomScaleMin;
+      if (args.randomScaleMax !== undefined) params.randomScaleMax = args.randomScaleMax;
+
+      const { stdout, stderr } = await this.executeOperation('create_scene_builder_item', params, projectPath);
+
+      if (stderr && stderr.includes('[ERROR]')) {
+        return this.createErrorResponse(
+          `Failed to create item: ${stderr}`,
+          ['Check if the scene file exists and is valid']
+        );
+      }
+
+      const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `SceneBuilder item created successfully.\n\n${JSON.stringify(result, null, 2)}`,
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: stdout,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to create item: ${error?.message || 'Unknown error'}`,
+        ['Ensure Godot is installed correctly', 'Verify the project path is accessible']
+      );
+    }
+  }
+
+  /**
+   * Handle the place_scene_builder_item tool
+   */
+  private async handlePlaceSceneBuilderItem(args: any) {
+    args = this.normalizeParameters(args);
+
+    // Resolve project path (use default if not provided)
+    const projectPath = this.resolveProjectPath(args.projectPath);
+    if (!projectPath) {
+      return this.createErrorResponse(
+        'Project path is required. Either provide projectPath or set GODOT_PROJECT_PATH environment variable.',
+        ['Provide a valid path to a Godot project directory', 'Set GODOT_PROJECT_PATH environment variable']
+      );
+    }
+
+    if (!args.targetScene || !args.collectionName || !args.itemName) {
+      return this.createErrorResponse(
+        'Target scene, collection name, and item name are required',
+        ['Provide targetScene, collectionName, and itemName']
+      );
+    }
+
+    if (!this.validatePath(projectPath) || !this.validatePath(args.targetScene)) {
+      return this.createErrorResponse(
+        'Invalid path',
+        ['Provide valid paths without ".." or other potentially unsafe characters']
+      );
+    }
+
+    try {
+      const projectFile = join(projectPath, 'project.godot');
+      if (!existsSync(projectFile)) {
+        return this.createErrorResponse(
+          `Not a valid Godot project: ${projectPath}`,
+          ['Ensure the path points to a directory containing a project.godot file']
+        );
+      }
+
+      // Strip res:// prefix if present for file system check
+      let targetSceneRelative = args.targetScene;
+      if (targetSceneRelative.startsWith('res://')) {
+        targetSceneRelative = targetSceneRelative.substring(6);
+      }
+      const targetScenePath = join(projectPath, targetSceneRelative);
+      if (!existsSync(targetScenePath)) {
+        return this.createErrorResponse(
+          `Target scene does not exist: ${args.targetScene}`,
+          ['Ensure the scene path is correct', 'Use create_scene to create a new scene first']
+        );
+      }
+
+      const params: any = {
+        targetScene: args.targetScene,
+        collectionName: args.collectionName,
+        itemName: args.itemName,
+      };
+
+      // Add optional parameters
+      if (args.position) params.position = args.position;
+      if (args.rotation) params.rotation = args.rotation;
+      if (args.scale) params.scale = args.scale;
+      if (args.parentPath) params.parentPath = args.parentPath;
+      if (args.instanceName) params.instanceName = args.instanceName;
+      if (args.applyRandomTransform !== undefined) params.applyRandomTransform = args.applyRandomTransform;
+
+      const { stdout, stderr } = await this.executeOperation('place_item', params, projectPath);
+
+      if (stderr && stderr.includes('[ERROR]')) {
+        return this.createErrorResponse(
+          `Failed to place item: ${stderr}`,
+          ['Check if the item exists', 'Verify the target scene is valid']
+        );
+      }
+
+      const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Item placed successfully.\n\n${JSON.stringify(result, null, 2)}`,
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: stdout,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to place item: ${error?.message || 'Unknown error'}`,
+        ['Ensure Godot is installed correctly', 'Verify the project path is accessible']
+      );
+    }
+  }
+
+  /**
+   * Handle the place_scene_builder_items_batch tool
+   */
+  private async handlePlaceSceneBuilderItemsBatch(args: any) {
+    args = this.normalizeParameters(args);
+
+    // Resolve project path (use default if not provided)
+    const projectPath = this.resolveProjectPath(args.projectPath);
+    if (!projectPath) {
+      return this.createErrorResponse(
+        'Project path is required. Either provide projectPath or set GODOT_PROJECT_PATH environment variable.',
+        ['Provide a valid path to a Godot project directory', 'Set GODOT_PROJECT_PATH environment variable']
+      );
+    }
+
+    if (!args.targetScene || !args.placements) {
+      return this.createErrorResponse(
+        'Target scene and placements are required',
+        ['Provide targetScene and placements array']
+      );
+    }
+
+    if (!this.validatePath(projectPath) || !this.validatePath(args.targetScene)) {
+      return this.createErrorResponse(
+        'Invalid path',
+        ['Provide valid paths without ".." or other potentially unsafe characters']
+      );
+    }
+
+    if (!Array.isArray(args.placements)) {
+      return this.createErrorResponse(
+        'Placements must be an array',
+        ['Provide an array of placement configurations']
+      );
+    }
+
+    try {
+      const projectFile = join(projectPath, 'project.godot');
+      if (!existsSync(projectFile)) {
+        return this.createErrorResponse(
+          `Not a valid Godot project: ${projectPath}`,
+          ['Ensure the path points to a directory containing a project.godot file']
+        );
+      }
+
+      // Strip res:// prefix if present for file system check
+      let targetSceneRelative = args.targetScene;
+      if (targetSceneRelative.startsWith('res://')) {
+        targetSceneRelative = targetSceneRelative.substring(6);
+      }
+      const targetScenePath = join(projectPath, targetSceneRelative);
+      if (!existsSync(targetScenePath)) {
+        return this.createErrorResponse(
+          `Target scene does not exist: ${args.targetScene}`,
+          ['Ensure the scene path is correct', 'Use create_scene to create a new scene first']
+        );
+      }
+
+      const params: any = {
+        targetScene: args.targetScene,
+        placements: args.placements,
+      };
+
+      const { stdout, stderr } = await this.executeOperation('place_items_batch', params, projectPath);
+
+      if (stderr && stderr.includes('[ERROR]')) {
+        return this.createErrorResponse(
+          `Failed to place items: ${stderr}`,
+          ['Check if the items exist', 'Verify the target scene is valid']
+        );
+      }
+
+      const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Batch placement completed.\n\n${JSON.stringify(result, null, 2)}`,
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: stdout,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to place items: ${error?.message || 'Unknown error'}`,
+        ['Ensure Godot is installed correctly', 'Verify the project path is accessible']
       );
     }
   }
