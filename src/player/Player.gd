@@ -116,7 +116,11 @@ func _physics_process(_delta: float) -> void:
 		# 固定视角，不随鼠标旋转
 		# camera.global_rotation = Vector3(pitch, yaw, 0)
 	
-	# 确保点击时捕获鼠标
+	# 游戏结束时不处理鼠标和射击
+	if GameManager.current_state == GameManager.GameState.GAME_OVER:
+		return
+	
+	# 确保点击时捕获鼠标（仅在游戏进行中）
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -189,6 +193,9 @@ func _hit_enemy(enemy: Node3D, point: Vector3, normal: Vector3) -> void:
 	GameManager.add_score(100)
 	GameManager.add_kill()
 	
+	# 在敌人位置生成浮动得分弹窗
+	VFXManager.spawn_score_popup(enemy.global_position + Vector3(0, 1.5, 0), 100)
+	
 	if enemy.has_method("die"):
 		enemy.die()
 	else:
@@ -196,7 +203,6 @@ func _hit_enemy(enemy: Node3D, point: Vector3, normal: Vector3) -> void:
 
 
 func _hit_hostage(hostage: Node3D) -> void:
-	GameManager.add_score(-500)
 	AudioManager.play_sfx("error")
 	
 	if hostage.has_method("hit"):

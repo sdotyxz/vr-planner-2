@@ -21,6 +21,7 @@ AudioManager="*res://src/autoload/AudioManager.gd"
 VFXManager="*res://src/autoload/VFXManager.gd"
 GameManager="*res://src/autoload/GameManager.gd"
 InputHandler="*res://src/autoload/InputHandler.gd"
+LeaderboardManager="*res://src/autoload/LeaderboardManager.gd"
 
 [display]
 

@@ -82,8 +82,6 @@ func _get_global_transform_relative_to(node: Node3D, relative_to: Node3D) -> Tra
 
 func die() -> void:
 	died.emit()
-	GameManager.add_kill()
-	GameManager.add_score(100)
 	
 	# 生成模型破碎效果 - 高速向前飞散
 	if model_instance:

@@ -2,12 +2,16 @@ extends Node
 ## VFX管理器 - 全局单例，管理粒子特效
 
 var vfx_library: Dictionary = {}
+var score_popup_scene: PackedScene = null
 
 
 func _ready() -> void:
 	# 预加载粒子场景
 	vfx_library["blood"] = load("res://assets/vfx/BloodSplatter.tscn")
 	vfx_library["muzzle"] = load("res://assets/vfx/MuzzleFlash.tscn")
+	
+	# 预加载得分弹窗场景
+	score_popup_scene = load("res://assets/vfx/ScorePopup.tscn")
 
 
 func spawn_vfx(vfx_name: String, pos: Vector3, normal: Vector3 = Vector3.UP) -> void:
@@ -28,3 +32,17 @@ func spawn_vfx(vfx_name: String, pos: Vector3, normal: Vector3 = Vector3.UP) -> 
 		instance.emitting = true
 		var lifetime: float = instance.lifetime if instance.lifetime > 0 else 1.0
 		get_tree().create_timer(lifetime + 0.5).timeout.connect(instance.queue_free)
+
+
+## 生成3D浮动得分弹窗
+func spawn_score_popup(pos: Vector3, score: int) -> void:
+	if not score_popup_scene:
+		return
+	
+	var popup: Node3D = score_popup_scene.instantiate()
+	get_tree().root.add_child(popup)
+	popup.global_position = pos
+	
+	# 设置分数
+	if popup.has_method("set_score"):
+		popup.set_score(score)

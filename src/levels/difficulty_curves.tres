@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="DifficultyCurves" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/levels/difficulty_curves.gd" id="1_script"]
+
+[sub_resource type="Curve" id="Curve_enemy"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.5, 1.5), 0.0, 0.0, 0, 0, Vector2(1, 2.5), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_hostage"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.5, 1.5), 0.0, 0.0, 0, 0, Vector2(1, 2), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_hint_time"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.5, 0.7), 0.0, 0.0, 0, 0, Vector2(1, 0.4), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[resource]
+script = ExtResource("1_script")
+enemy_curve = SubResource("Curve_enemy")
+hostage_curve = SubResource("Curve_hostage")
+hint_time_curve = SubResource("Curve_hint_time")

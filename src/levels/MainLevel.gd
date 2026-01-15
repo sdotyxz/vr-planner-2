@@ -12,26 +12,35 @@ class_name MainLevel
 @onready var game_over_ui: Control = $UI/GameOverUI
 @onready var covers_container: Node3D = $Covers
 
-# GameOver UI 元素
-@onready var score_label: Label = $UI/GameOverUI/VBoxContainer/ScoreLabel
-@onready var rooms_label: Label = $UI/GameOverUI/VBoxContainer/RoomsLabel
-@onready var kills_label: Label = $UI/GameOverUI/VBoxContainer/KillsLabel
+# GameOver UI 元素 - 排行榜
+@onready var leaderboard_title: Label = $UI/GameOverUI/VBoxContainer/LeaderboardTitle
+@onready var leaderboard_container: VBoxContainer = $UI/GameOverUI/VBoxContainer/LeaderboardContainer
+@onready var name_input_container: HBoxContainer = $UI/GameOverUI/VBoxContainer/NameInputContainer
+@onready var name_input: LineEdit = $UI/GameOverUI/VBoxContainer/NameInputContainer/NameInput
+@onready var click_hint: Label = $UI/GameOverUI/VBoxContainer/ClickHint
+
+## 是否可以点击重启（名字已提交后）
+var _can_click_restart: bool = false
+
+## 3D结算界面场景
+var game_over_screen_3d_scene: PackedScene = preload("res://src/ui/GameOverScreen3D.tscn")
+var game_over_screen_3d: Node3D = null
+
+## Office场景管理器
+var office_scene_manager: OfficeSceneManager = null
+
+## Office场景容器节点
+@onready var office_container: Node3D = $OfficeContainer
 
 ## 关卡配置
 @export_group("Level Settings")
 @export var base_time: float = 20.0  ## 第一关时间（秒）
 @export var base_enemy_count: int = 4  ## 第一关敌人数量
-@export var base_cover_count: int = 2  ## 第一关掩体数量
-@export var hostage_count: int = 1  ## 人质数量（固定）
+@export var base_hostage_count: int = 1  ## 第一关人质数量
+@export var base_hint_time: float = 3.0  ## 基础射击提示时间（秒）
 
-## 时间曲线配置（X轴为关卡数，Y轴为时间乘数）
-@export_group("Difficulty Curves")
-@export var time_curve: Curve  ## 时间曲线：关卡越高，时间乘数
-@export var enemy_curve: Curve  ## 敌人曲线：关卡越高，敌人乘数
-@export var cover_curve: Curve  ## 掩体曲线：关卡越高，掩体乘数
-
-## 生成区域节点配置（通过场景中的节点定义区域）
-@export_group("Spawn Areas")
+## 生成区域节点配置（通过场景中的节点定义区域）- 保留用于后备
+@export_group("Spawn Areas (Legacy)")
 @export_node_path("SpawnArea") var enemy_spawn_area_path: NodePath  ## 敌人生成区域
 @export_node_path("SpawnArea") var hostage_spawn_area_path: NodePath  ## 人质生成区域
 @export_node_path("SpawnArea") var door_avoid_area_path: NodePath  ## 门区域（避开）
@@ -47,6 +56,14 @@ var timer_active: bool = false
 var cover_positions: Array[Vector3] = []  ## 当前掩体位置列表
 var shooting_hints: Array[Node3D] = []  ## 当前射击提示列表
 var hint_to_enemy: Dictionary = {}  ## 射击提示到敌人的映射 {hint: enemy}
+var _spawning_hints: bool = false  ## 是否正在生成射击提示
+
+## 难度曲线变量（用于遗留代码兼容）
+var time_curve: Curve = null
+var enemy_curve: Curve = null
+var cover_curve: Curve = null
+var base_cover_count: int = 2
+var hostage_count: int = 1  ## 人质数量（遗留代码兼容）
 
 ## 射击提示场景
 var shooting_hint_scene: PackedScene = preload("res://assets/vfx/ShootingHint.tscn")
@@ -56,16 +73,29 @@ func _ready() -> void:
 	# 添加到 main_level 组，方便其他节点查找
 	add_to_group("main_level")
 	
-	# 获取 SpawnArea 节点引用
+	# 初始化OfficeSceneManager
+	office_scene_manager = OfficeSceneManager.new()
+	add_child(office_scene_manager)
+	
+	# 确保office_container存在
+	if not office_container:
+		office_container = Node3D.new()
+		office_container.name = "OfficeContainer"
+		add_child(office_container)
+		office_container.global_position = Vector3(0, 0, -15)  # 与原OfficeV3位置一致
+	
+	# 移除静态的OfficeV3场景（如果存在）
+	var static_office := get_node_or_null("OfficeV3")
+	if static_office:
+		static_office.queue_free()
+	
+	# 获取 SpawnArea 节点引用（保留用于兼容）
 	if enemy_spawn_area_path:
 		enemy_spawn_area = get_node_or_null(enemy_spawn_area_path) as SpawnArea
 	if hostage_spawn_area_path:
 		hostage_spawn_area = get_node_or_null(hostage_spawn_area_path) as SpawnArea
 	if door_avoid_area_path:
 		door_avoid_area = get_node_or_null(door_avoid_area_path) as SpawnArea
-	
-	# 初始化默认曲线（如果没有配置）
-	_init_default_curves()
 	
 	# 连接信号
 	if rail_system:
@@ -96,29 +126,6 @@ func _ready() -> void:
 		rail_system.start_moving()
 
 
-func _init_default_curves() -> void:
-	# 时间曲线默认值：随关卡增加，时间略微增加
-	if not time_curve:
-		time_curve = Curve.new()
-		time_curve.add_point(Vector2(0.0, 1.0))  # 第1关：1.0倍
-		time_curve.add_point(Vector2(0.5, 1.2))  # 中期：1.2倍
-		time_curve.add_point(Vector2(1.0, 1.5))  # 后期：1.5倍
-	
-	# 敌人曲线默认值：随关卡增加，敌人数量增加
-	if not enemy_curve:
-		enemy_curve = Curve.new()
-		enemy_curve.add_point(Vector2(0.0, 1.0))  # 第1关：1.0倍
-		enemy_curve.add_point(Vector2(0.5, 1.5))  # 中期：1.5倍
-		enemy_curve.add_point(Vector2(1.0, 2.5))  # 后期：2.5倍
-	
-	# 掩体曲线默认值：随关卡增加，掩体数量增加
-	if not cover_curve:
-		cover_curve = Curve.new()
-		cover_curve.add_point(Vector2(0.0, 1.0))  # 第1关：1.0倍
-		cover_curve.add_point(Vector2(0.5, 1.5))  # 中期：1.5倍
-		cover_curve.add_point(Vector2(1.0, 2.0))  # 后期：2.0倍
-
-
 func _process(delta: float) -> void:
 	# 手动同步玩家位置到轨道
 	if player and rail_system:
@@ -136,16 +143,15 @@ func _process(delta: float) -> void:
 			_on_time_up()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	# 游戏结束界面：点击任意位置重新开始
+	if _can_click_restart and GameManager.current_state == GameManager.GameState.GAME_OVER:
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_on_restart_button_pressed()
+			get_viewport().set_input_as_handled()
 func _update_timer_display() -> void:
-	if hud and hud.timer_label:
-		var seconds := int(ceil(time_remaining))
-		hud.timer_label.text = "%02d" % seconds
-		
-		# 时间紧迫时变红
-		if time_remaining <= 5.0:
-			hud.timer_label.add_theme_color_override("font_color", Color.RED)
-		else:
-			hud.timer_label.remove_theme_color_override("font_color")
+	# 倒计时已移除，此函数保留但不做任何操作
+	pass
 
 
 func _on_time_up() -> void:
@@ -163,6 +169,9 @@ func _trigger_game_over() -> void:
 	# 禁用玩家控制
 	if player:
 		player.disable_control()
+	
+	# 清除所有射击提示
+	_clear_shooting_hints()
 	
 	# 延迟后显示结算界面
 	await get_tree().create_timer(1.0).timeout
@@ -238,6 +247,9 @@ func _spawn_shooting_hints() -> void:
 	# 清除之前的射击提示
 	_clear_shooting_hints()
 	
+	# 设置标志为正在生成
+	_spawning_hints = true
+	
 	# 收集所有敌人
 	var enemies: Array[Node] = []
 	if entities:
@@ -246,6 +258,7 @@ func _spawn_shooting_hints() -> void:
 				enemies.append(child)
 	
 	if enemies.is_empty():
+		_spawning_hints = false
 		return
 	
 	# 随机打乱敌人顺序
@@ -253,10 +266,18 @@ func _spawn_shooting_hints() -> void:
 	
 	# 逐个生成射击提示
 	for i in range(enemies.size()):
+		# 检查是否应该停止生成
+		if not _spawning_hints:
+			return
+		
 		# 等待随机间隔（0.5到1秒）
 		if i > 0:
 			var delay := randf_range(0.5, 1.0)
 			await get_tree().create_timer(delay).timeout
+			
+			# 再次检查，因为wait之后可能已经停止
+			if not _spawning_hints:
+				return
 		
 		# 检查敌人是否仍然有效
 		if not is_instance_valid(enemies[i]):
@@ -309,6 +330,9 @@ func _on_enemy_died_remove_hint(hint: Node3D) -> void:
 
 ## 清除所有射击提示
 func _clear_shooting_hints() -> void:
+	# 停止正在进行的生成
+	_spawning_hints = false
+	
 	for hint in shooting_hints:
 		if is_instance_valid(hint):
 			hint.queue_free()
@@ -473,6 +497,93 @@ func _teleport_and_restart() -> void:
 
 
 func _respawn_enemies() -> void:
+	if not entities:
+		return
+	
+	# 清除现有敌人和人质
+	for child in entities.get_children():
+		if child is Enemy or child is Hostage:
+			child.queue_free()
+	
+	# 清除现有掩体（不再使用）
+	if covers_container:
+		for child in covers_container.get_children():
+			child.queue_free()
+	cover_positions.clear()
+	
+	# 清除射击提示
+	_clear_shooting_hints()
+	
+	# 等待一帧确保节点被清除
+	await get_tree().process_frame
+	
+	# 根据当前房间难度加载Office场景
+	if office_scene_manager and office_container:
+		office_scene_manager.load_office_by_difficulty(office_container, current_room)
+	
+	# 等待一帧确保场景加载完成
+	await get_tree().process_frame
+	
+	# 从Office场景的SpawnPoints生成敌人和人质
+	_spawn_from_office_scene()
+
+
+## 从当前Office场景的SpawnPoints生成敌人和人质
+func _spawn_from_office_scene() -> void:
+	if not office_scene_manager:
+		push_warning("[MainLevel] OfficeSceneManager not initialized!")
+		return
+	
+	var enemy_scene := preload("res://src/entities/Enemy.tscn")
+	var hostage_scene := preload("res://src/entities/Hostage.tscn")
+	
+	# 获取激活的敌人SpawnPoints
+	var enemy_spawns := office_scene_manager.get_active_enemy_spawns(base_enemy_count, current_room)
+	var hostage_spawns := office_scene_manager.get_active_hostage_spawns(base_hostage_count, current_room)
+	
+	var spawned_enemies: Array[Enemy] = []
+	
+	# 生成敌人
+	for spawn_point in enemy_spawns:
+		var enemy: Enemy = enemy_scene.instantiate()
+		entities.add_child(enemy)
+		
+		# 使用SpawnPoint的位置（需要转换到世界坐标）
+		enemy.global_position = spawn_point.global_position
+		
+		# 使用SpawnPoint的朝向
+		if front_door:
+			enemy.look_at_target(front_door.global_position)
+		else:
+			var rotation_y := spawn_point.get_facing_rotation_y()
+			enemy.rotation.y = rotation_y
+		
+		enemy.died.connect(_on_enemy_died)
+		spawned_enemies.append(enemy)
+	
+	# 生成人质
+	var enemy_index := 0
+	for spawn_point in hostage_spawns:
+		var hostage: Hostage = hostage_scene.instantiate()
+		entities.add_child(hostage)
+		
+		# 使用SpawnPoint的位置
+		hostage.global_position = spawn_point.global_position
+		hostage.died.connect(_on_hostage_died)
+		
+		# 关联一个敌人（循环使用）
+		if not spawned_enemies.is_empty():
+			var linked_enemy := spawned_enemies[enemy_index % spawned_enemies.size()]
+			if is_instance_valid(linked_enemy):
+				linked_enemy.died.connect(_on_linked_enemy_died.bind(hostage))
+			enemy_index += 1
+	
+	enemies_alive = enemy_spawns.size()
+	print("[MainLevel] Spawned %d enemies and %d hostages" % [enemy_spawns.size(), hostage_spawns.size()])
+
+
+## 旧的敌人生成逻辑（保留用于回退）
+func _respawn_enemies_legacy() -> void:
 	if not entities:
 		return
 	
@@ -752,9 +863,8 @@ func _return_to_start() -> void:
 	time_remaining = 0.0
 	
 	# 重置 HUD 显示
-	if hud and hud.timer_label:
-		hud.timer_label.text = ""
-		hud.timer_label.remove_theme_color_override("font_color")
+	if hud:
+		hud.visible = true
 	
 	# 重置玩家
 	if player:
@@ -813,18 +923,34 @@ func _show_start_ui() -> void:
 func _show_game_over_ui() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	
-	# 更新结算数据
-	if score_label:
-		score_label.text = "SCORE: %d" % GameManager.score
-	if rooms_label:
-		rooms_label.text = "ROOMS: %d" % GameManager.rooms_cleared
-	if kills_label:
-		kills_label.text = "KILLS: %d" % GameManager.kills
+	# 将鼠标移动到屏幕中心，确保可见
+	var viewport_size := get_viewport().get_visible_rect().size
+	get_viewport().warp_mouse(viewport_size / 2)
 	
+	# 隐藏原有2D结算界面
 	if game_over_ui:
-		game_over_ui.visible = true
+		game_over_ui.visible = false
 	if hud:
 		hud.visible = false
+	
+	# 创建3D结算界面
+	if game_over_screen_3d:
+		game_over_screen_3d.queue_free()
+	
+	game_over_screen_3d = game_over_screen_3d_scene.instantiate()
+	
+	# 将界面添加到玩家摄像机前方
+	if player and player.camera:
+		player.camera.add_child(game_over_screen_3d)
+		game_over_screen_3d.position = Vector3(0, 0, -2)  # 在摄像机前方2米
+	else:
+		add_child(game_over_screen_3d)
+	
+	# 连接信号
+	game_over_screen_3d.restart_requested.connect(_on_game_over_3d_restart)
+	
+	# 显示排行榜
+	game_over_screen_3d.show_leaderboard(GameManager.score)
 
 
 func _on_start_button_pressed() -> void:
@@ -846,9 +972,19 @@ func _on_start_button_pressed() -> void:
 
 
 func _on_restart_button_pressed() -> void:
-	# 隐藏结算界面
+	# 防止重复触发
+	if not _can_click_restart and GameManager.current_state != GameManager.GameState.GAME_OVER:
+		return
+	
+	# 立即禁用点击重启，防止重复触发
+	_can_click_restart = false
+	
+	# 隐藏/销毁结算界面
 	if game_over_ui:
 		game_over_ui.visible = false
+	if game_over_screen_3d:
+		game_over_screen_3d.queue_free()
+		game_over_screen_3d = null
 	
 	# 重置游戏状态
 	GameManager.reset_stats()
@@ -861,9 +997,6 @@ func _on_restart_button_pressed() -> void:
 	# 重置 HUD 显示
 	if hud:
 		hud.visible = true
-		if hud.timer_label:
-			hud.timer_label.text = ""
-			hud.timer_label.remove_theme_color_override("font_color")
 	
 	# 重置玩家
 	if player:
@@ -912,3 +1045,284 @@ func _on_restart_button_pressed() -> void:
 	# 开始从起点移动到路径点1
 	if rail_system:
 		rail_system.start_moving()
+
+
+## ==================== 排行榜相关函数 ====================
+
+## 当前玩家是否进入排行榜
+var _player_rank: int = -1
+## 当前玩家是否已提交名字
+var _name_submitted: bool = false
+## 重启延迟时间（秒）
+const RESTART_DELAY: float = 2.0
+
+
+## 延迟后启用点击重启
+func _start_restart_delay() -> void:
+	await get_tree().create_timer(RESTART_DELAY).timeout
+	# 确保仍在游戏结束状态
+	if GameManager.current_state == GameManager.GameState.GAME_OVER:
+		_can_click_restart = true
+		if click_hint:
+			click_hint.visible = true
+
+
+## 刷新排行榜显示，如果进入排行榜则在对应位置显示名字输入框
+func _refresh_leaderboard_with_input() -> void:
+	_clear_leaderboard_display()
+	_name_submitted = false
+	_can_click_restart = false
+	
+	if not leaderboard_container:
+		return
+	
+	var leaderboard := LeaderboardManager.get_leaderboard()
+	var is_high_score := LeaderboardManager.is_high_score(GameManager.score)
+	
+	# 确定玩家排名位置
+	_player_rank = -1
+	if is_high_score:
+		for i in range(leaderboard.size()):
+			if GameManager.score > leaderboard[i]["score"]:
+				_player_rank = i
+				break
+		if _player_rank == -1 and leaderboard.size() < LeaderboardManager.MAX_ENTRIES:
+			_player_rank = leaderboard.size()
+	
+	# 更新标题
+	if leaderboard_title:
+		if is_high_score:
+			leaderboard_title.text = "NEW HIGH SCORE!"
+			leaderboard_title.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3, 1))
+		else:
+			leaderboard_title.text = "HIGH SCORES"
+			leaderboard_title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1))
+	
+	# 隐藏单独的名字输入容器（使用内联输入）
+	if name_input_container:
+		name_input_container.visible = false
+	
+	# 显示/隐藏点击提示
+	if click_hint:
+		if is_high_score:
+			# 进入排行榜，等待输入名字后才能点击重启
+			click_hint.visible = false
+			_can_click_restart = false
+		else:
+			# 没有进入排行榜，延迟2秒后才能点击重启
+			click_hint.visible = false
+			_can_click_restart = false
+			_start_restart_delay()
+	
+	# 生成排行榜行
+	var display_index := 0
+	for i in range(LeaderboardManager.MAX_ENTRIES):
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
+		# 如果是玩家排名位置且未提交，显示输入框
+		if i == _player_rank and is_high_score:
+			_create_input_row(row, i + 1, GameManager.score)
+			leaderboard_container.add_child(row)
+			continue
+		
+		# 调整索引：如果玩家排名在当前位置之前，需要偏移
+		var data_index := display_index
+		if _player_rank >= 0 and i > _player_rank:
+			data_index = display_index
+		else:
+			data_index = display_index
+		
+		# 计算实际数据索引
+		var actual_index := i
+		if _player_rank >= 0 and i > _player_rank:
+			actual_index = i - 1  # 玩家位置之后的数据往前移一位
+		
+		_create_score_row(row, i + 1, leaderboard, actual_index)
+		leaderboard_container.add_child(row)
+		
+		if _player_rank < 0 or i < _player_rank:
+			display_index += 1
+
+
+## 创建带名字输入框的行（无按钮，只用回车确认）
+func _create_input_row(row: HBoxContainer, rank: int, score: int) -> void:
+	# 排名
+	var rank_label := Label.new()
+	rank_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rank_label.custom_minimum_size = Vector2(50, 0)
+	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rank_label.add_theme_font_size_override("font_size", 32)
+	rank_label.add_theme_constant_override("outline_size", 2)
+	rank_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	rank_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3, 1))
+	rank_label.text = "%d." % rank
+	
+	# 名字输入框
+	var input := LineEdit.new()
+	input.custom_minimum_size = Vector2(200, 0)
+	input.add_theme_font_size_override("font_size", 32)
+	input.max_length = 5
+	input.placeholder_text = "NAME"
+	input.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	input.caret_blink = true
+	input.text_submitted.connect(_on_inline_name_submitted)
+	# 保存引用用于提交
+	input.set_meta("rank", rank)
+	
+	# 分数
+	var score_lbl := Label.new()
+	score_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	score_lbl.custom_minimum_size = Vector2(100, 0)
+	score_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	score_lbl.add_theme_font_size_override("font_size", 32)
+	score_lbl.add_theme_constant_override("outline_size", 2)
+	score_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	score_lbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3, 1))
+	score_lbl.text = str(score)
+	
+	row.add_child(rank_label)
+	row.add_child(input)
+	row.add_child(score_lbl)
+	
+	# 延迟获取焦点
+	input.call_deferred("grab_focus")
+
+
+## 创建普通分数行
+func _create_score_row(row: HBoxContainer, rank: int, leaderboard: Array, data_index: int) -> void:
+	# 排名
+	var rank_label := Label.new()
+	rank_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rank_label.custom_minimum_size = Vector2(50, 0)
+	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rank_label.add_theme_font_size_override("font_size", 32)
+	rank_label.add_theme_constant_override("outline_size", 2)
+	rank_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	
+	# 名字
+	var name_label := Label.new()
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_label.custom_minimum_size = Vector2(140, 0)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 32)
+	name_label.add_theme_constant_override("outline_size", 2)
+	name_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	
+	# 占位（与按钮对齐）
+	var spacer := Control.new()
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spacer.custom_minimum_size = Vector2(60, 0)
+	
+	# 分数
+	var score_lbl := Label.new()
+	score_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	score_lbl.custom_minimum_size = Vector2(100, 0)
+	score_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	score_lbl.add_theme_font_size_override("font_size", 32)
+	score_lbl.add_theme_constant_override("outline_size", 2)
+	score_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	
+	if data_index >= 0 and data_index < leaderboard.size():
+		var entry: Dictionary = leaderboard[data_index]
+		rank_label.text = "%d." % rank
+		name_label.text = entry["name"]
+		score_lbl.text = str(entry["score"])
+	else:
+		rank_label.text = "%d." % rank
+		name_label.text = "---"
+		score_lbl.text = "---"
+		rank_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1))
+		name_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1))
+		score_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1))
+	
+	row.add_child(rank_label)
+	row.add_child(name_label)
+	row.add_child(spacer)
+	row.add_child(score_lbl)
+
+
+## 内联名字输入框回车提交
+func _on_inline_name_submitted(text: String) -> void:
+	_submit_inline_name(text)
+
+
+## 内联确认按钮点击
+func _on_inline_confirm_pressed(input: LineEdit) -> void:
+	_submit_inline_name(input.text)
+
+
+## 提交内联名字
+func _submit_inline_name(text: String) -> void:
+	if _name_submitted:
+		return
+	_name_submitted = true
+	
+	var player_name := text.strip_edges()
+	
+	# 过滤非法字符
+	if not LeaderboardManager.is_valid_name(player_name):
+		player_name = "ANON"
+	
+	# 添加到排行榜
+	LeaderboardManager.add_entry(player_name, GameManager.score)
+	
+	# 刷新排行榜显示（不再显示输入框）
+	_show_final_leaderboard()
+
+
+## 显示最终排行榜（提交名字后）
+func _show_final_leaderboard() -> void:
+	_clear_leaderboard_display()
+	
+	if not leaderboard_container:
+		return
+	
+	var leaderboard := LeaderboardManager.get_leaderboard()
+	
+	if leaderboard_title:
+		leaderboard_title.text = "HIGH SCORES"
+		leaderboard_title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1))
+	
+	# 显示点击提示，启用点击重启
+	if click_hint:
+		click_hint.visible = true
+	_can_click_restart = true
+	
+	for i in range(LeaderboardManager.MAX_ENTRIES):
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_create_score_row(row, i + 1, leaderboard, i)
+		
+		# 高亮玩家的记录
+		if i < leaderboard.size() and leaderboard[i]["score"] == GameManager.score:
+			for child in row.get_children():
+				if child is Label:
+					child.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3, 1))
+		
+		leaderboard_container.add_child(row)
+
+
+## 清空排行榜显示
+func _clear_leaderboard_display() -> void:
+	if not leaderboard_container:
+		return
+	for child in leaderboard_container.get_children():
+		child.queue_free()
+
+
+## 名字确认按钮回调（保留兼容）
+func _on_name_confirm_button_pressed() -> void:
+	pass
+
+
+## 名字输入框回车提交回调（保留兼容）
+func _on_name_input_submitted(_text: String) -> void:
+	pass
+
+
+## 3D结算界面重启回调
+func _on_game_over_3d_restart() -> void:
+	_on_restart_button_pressed()

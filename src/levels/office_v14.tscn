@@ -1,0 +1,257 @@
+[gd_scene load_steps=35 format=3 uid="uid://cf4o03bv7ejvo"]
+
+[ext_resource type="PackedScene" uid="uid://cl5phqljikv1p" path="res://assets/models/furniture/VNB Low Poly Office Set/Office_Desk_1.fbx" id="1_desk1"]
+[ext_resource type="PackedScene" uid="uid://dvjhfk01di0wt" path="res://assets/models/furniture/VNB Low Poly Office Set/Office_Desk_2.fbx" id="2_desk2"]
+[ext_resource type="PackedScene" uid="uid://ighdtk4prm0g" path="res://assets/models/furniture/VNB Low Poly Office Set/Office_Desk_4_Two.fbx" id="3_desk4two"]
+[ext_resource type="PackedScene" uid="uid://dky65n1rlmteu" path="res://assets/models/furniture/VNB Low Poly Office Set/Office_Desk_4.fbx" id="4_desk4"]
+[ext_resource type="PackedScene" uid="uid://81ce84a2cs3u" path="res://assets/models/furniture/VNB Low Poly Office Set/Chair_Office_Base_A.fbx" id="5_chaira"]
+[ext_resource type="PackedScene" uid="uid://38nd5ak7xvwo" path="res://assets/models/furniture/VNB Low Poly Office Set/Chair_Office_Base_B.fbx" id="6_chairb"]
+[ext_resource type="PackedScene" uid="uid://c4txoki78funs" path="res://assets/models/furniture/VNB Low Poly Office Set/Chair_Office_Base_C.fbx" id="7_chairc"]
+[ext_resource type="PackedScene" uid="uid://b2ldau1xtw63m" path="res://assets/models/furniture/VNB Low Poly Office Set/Chair_A.fbx" id="8_chairsimple"]
+[ext_resource type="PackedScene" uid="uid://b62uxxhiqmsts" path="res://assets/models/furniture/VNB Low Poly Office Set/Computer_Monitor.fbx" id="9_monitor"]
+[ext_resource type="PackedScene" uid="uid://bfqv4wwe1olro" path="res://assets/models/furniture/VNB Low Poly Office Set/Lamp_1.fbx" id="11_lamp"]
+[ext_resource type="PackedScene" uid="uid://blfjkpl22lppc" path="res://assets/models/furniture/VNB Low Poly Office Set/Bookshelf.fbx" id="12_bookshelf"]
+[ext_resource type="PackedScene" uid="uid://d3i617gm5psvu" path="res://assets/models/furniture/VNB Low Poly Office Set/FileCabinet_Standard.fbx" id="13_cabinet"]
+[ext_resource type="PackedScene" uid="uid://cixsg0ahhtmi8" path="res://assets/models/furniture/VNB Low Poly Office Set/Nature_Deco.fbx" id="14_plant1"]
+[ext_resource type="PackedScene" uid="uid://bbvgxbsld3aev" path="res://assets/models/furniture/VNB Low Poly Office Set/Nature_Deco_2.fbx" id="15_plant2"]
+[ext_resource type="PackedScene" uid="uid://8ugssadmlvxp" path="res://assets/models/furniture/VNB Low Poly Office Set/Office_CounterA1.fbx" id="16_counter1"]
+[ext_resource type="PackedScene" uid="uid://dxqojhqvunnrw" path="res://assets/models/furniture/VNB Low Poly Office Set/Office_CounterA2.fbx" id="17_counter2"]
+[ext_resource type="PackedScene" uid="uid://co4cgj0kpyojd" path="res://assets/models/furniture/VNB Low Poly Office Set/CoffeeMachine.fbx" id="18_coffee"]
+[ext_resource type="PackedScene" uid="uid://u0d2bpyvod7w" path="res://assets/models/furniture/VNB Low Poly Office Set/Microwave_New.fbx" id="19_microwave"]
+[ext_resource type="PackedScene" uid="uid://bsr4r4avgxk2i" path="res://assets/models/furniture/VNB Low Poly Office Set/CoffeeCup.fbx" id="20_cup"]
+[ext_resource type="PackedScene" uid="uid://rplan635t3mb" path="res://assets/models/furniture/VNB Low Poly Office Set/Painting.fbx" id="21_painting"]
+[ext_resource type="PackedScene" uid="uid://dp4m22b3xvoin" path="res://assets/models/furniture/VNB Low Poly Office Set/TrashBin.fbx" id="22_trash"]
+[ext_resource type="PackedScene" uid="uid://bq2n462q8gffe" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Sofa_1.fbx" id="23_sofa1"]
+[ext_resource type="PackedScene" uid="uid://beb64ufqpdxcy" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Sofa_2.fbx" id="24_sofa2"]
+[ext_resource type="PackedScene" uid="uid://b7tbutkmdbhvh" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Sofa_4.fbx" id="26_armchair"]
+[ext_resource type="PackedScene" uid="uid://nk31ek1rt8vr" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Coffee_Table.fbx" id="27_coffeetable"]
+[ext_resource type="PackedScene" uid="uid://ddoriqdurnoea" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Table.fbx" id="28_table"]
+[ext_resource type="PackedScene" uid="uid://3c10v2x8fbsp" path="res://assets/models/furniture/VNB Low Poly Office Set 2/TV.fbx" id="29_tv"]
+[ext_resource type="PackedScene" uid="uid://b171ar2abkmb4" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Shelves.fbx" id="30_shelves"]
+[ext_resource type="PackedScene" uid="uid://detb7mnn28ude" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Stool.fbx" id="31_stool"]
+[ext_resource type="PackedScene" uid="uid://bb00ms6hcfou7" path="res://assets/models/furniture/VNB Low Poly Office Set/Rug_A.fbx" id="32_rug"]
+[ext_resource type="PackedScene" uid="uid://3vhy1j27sv3h" path="res://assets/models/furniture/VNB Low Poly Office Set/Notepad.fbx" id="33_notepad"]
+[ext_resource type="PackedScene" uid="uid://kxqjy5fko2ft" path="res://assets/models/furniture/VNB Low Poly Office Set/Printer.fbx" id="34_printer"]
+[ext_resource type="PackedScene" uid="uid://b7l2qywn1nwa1" path="res://assets/models/furniture/VNB Low Poly Office Set/FileCabinet_Small.fbx" id="35_cabinetsmall"]
+[ext_resource type="PackedScene" path="res://src/entities/spawn_point.tscn" id="36_spawnpoint_scene"]
+
+[node name="OfficeV14" type="Node3D"]
+
+[node name="OpenDesk_1" parent="." instance=ExtResource("3_desk4two")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -3)
+
+[node name="OpenChair_1A" parent="." instance=ExtResource("5_chaira")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -5.5, 0, -2.2)
+
+[node name="OpenChair_1B" parent="." instance=ExtResource("5_chaira")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -4.5, 0, -2.2)
+
+[node name="OpenMonitor_1A" parent="." instance=ExtResource("9_monitor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 0.75, -3.3)
+
+[node name="OpenMonitor_1B" parent="." instance=ExtResource("9_monitor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 0.75, -3.3)
+
+[node name="OpenDesk_2" parent="." instance=ExtResource("3_desk4two")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 0)
+
+[node name="OpenChair_2A" parent="." instance=ExtResource("6_chairb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 0, -0.8)
+
+[node name="OpenChair_2B" parent="." instance=ExtResource("6_chairb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 0, -0.8)
+
+[node name="OpenMonitor_2A" parent="." instance=ExtResource("9_monitor")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -5.5, 0.75, 0.3)
+
+[node name="OpenMonitor_2B" parent="." instance=ExtResource("9_monitor")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -4.5, 0.75, 0.3)
+
+[node name="OpenDesk_3" parent="." instance=ExtResource("3_desk4two")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 3)
+
+[node name="OpenChair_3A" parent="." instance=ExtResource("7_chairc")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -5.5, 0, 3.8)
+
+[node name="OpenChair_3B" parent="." instance=ExtResource("7_chairc")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -4.5, 0, 3.8)
+
+[node name="OpenMonitor_3A" parent="." instance=ExtResource("9_monitor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 0.75, 2.7)
+
+[node name="OpenMonitor_3B" parent="." instance=ExtResource("9_monitor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 0.75, 2.7)
+
+[node name="Lamp_Open1" parent="." instance=ExtResource("11_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.2, 0.75, -3)
+
+[node name="Notepad_Open1" parent="." instance=ExtResource("33_notepad")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0.76, 0.2)
+
+[node name="MeetingTable" parent="." instance=ExtResource("4_desk4")]
+transform = Transform3D(1.2, 0, 0, 0, 1, 0, 0, 0, 1.2, -1, 0, -4)
+
+[node name="MeetingChair_1" parent="." instance=ExtResource("8_chairsimple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -4.8)
+
+[node name="MeetingChair_2" parent="." instance=ExtResource("8_chairsimple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -4.8)
+
+[node name="MeetingChair_3" parent="." instance=ExtResource("8_chairsimple")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4.8)
+
+[node name="MeetingChair_4" parent="." instance=ExtResource("8_chairsimple")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -2, 0, -3.2)
+
+[node name="MeetingChair_5" parent="." instance=ExtResource("8_chairsimple")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -1, 0, -3.2)
+
+[node name="MeetingChair_6" parent="." instance=ExtResource("8_chairsimple")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, -3.2)
+
+[node name="Bookshelf_Meeting" parent="." instance=ExtResource("12_bookshelf")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -5.5)
+
+[node name="TV_Meeting" parent="." instance=ExtResource("29_tv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 1.5, -5.5)
+
+[node name="CoffeeCounter_1" parent="." instance=ExtResource("16_counter1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, -5.5)
+
+[node name="CoffeeCounter_2" parent="." instance=ExtResource("17_counter2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0, -5.5)
+
+[node name="CoffeeMachine_Bar" parent="." instance=ExtResource("18_coffee")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, 0.9, -5.5)
+
+[node name="Microwave_Bar" parent="." instance=ExtResource("19_microwave")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.9, -5.5)
+
+[node name="BarTable" parent="." instance=ExtResource("28_table")]
+transform = Transform3D(0.6, 0, 0, 0, 1, 0, 0, 0, 0.4, 4.5, 0, -3.5)
+
+[node name="BarStool_1" parent="." instance=ExtResource("31_stool")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -2.8)
+
+[node name="BarStool_2" parent="." instance=ExtResource("31_stool")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, -2.8)
+
+[node name="Cup_Bar1" parent="." instance=ExtResource("20_cup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.3, 0.76, -3.5)
+
+[node name="Cup_Bar2" parent="." instance=ExtResource("20_cup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.7, 0.76, -3.4)
+
+[node name="Sofa_Lounge1" parent="." instance=ExtResource("23_sofa1")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 6, 0, 0)
+
+[node name="Sofa_Lounge2" parent="." instance=ExtResource("24_sofa2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 2)
+
+[node name="Armchair_Lounge" parent="." instance=ExtResource("26_armchair")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2.5, 0, 0)
+
+[node name="CoffeeTable_Lounge" parent="." instance=ExtResource("27_coffeetable")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 0)
+
+[node name="Rug_Lounge" parent="." instance=ExtResource("32_rug")]
+transform = Transform3D(1.5, 0, 0, 0, 1, 0, 0, 0, 1.5, 4, 0, 0.5)
+
+[node name="Shelves_Lounge" parent="." instance=ExtResource("30_shelves")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 6.5, 0, 2)
+
+[node name="Cabinet_F1" parent="." instance=ExtResource("13_cabinet")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 6.5, 0, 4)
+
+[node name="Cabinet_F2" parent="." instance=ExtResource("13_cabinet")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 6.5, 0, 5.5)
+
+[node name="CabinetSmall_F" parent="." instance=ExtResource("35_cabinetsmall")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 5.5)
+
+[node name="Printer_F" parent="." instance=ExtResource("34_printer")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.9, 5.5)
+
+[node name="CenterDesk" parent="." instance=ExtResource("2_desk2")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, 0, 1)
+
+[node name="CenterChair" parent="." instance=ExtResource("5_chaira")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -0.8, 0, 1)
+
+[node name="CenterMonitor" parent="." instance=ExtResource("9_monitor")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.3, 0.75, 1)
+
+[node name="ManagerDesk" parent="." instance=ExtResource("1_desk1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 4)
+
+[node name="ManagerChair" parent="." instance=ExtResource("5_chaira")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -2, 0, 4.8)
+
+[node name="ManagerMonitor" parent="." instance=ExtResource("9_monitor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0.75, 3.7)
+
+[node name="ManagerLamp" parent="." instance=ExtResource("11_lamp")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.3, 0.75, 4)
+
+[node name="Plant_1" parent="." instance=ExtResource("14_plant1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 0, -5)
+
+[node name="Plant_2" parent="." instance=ExtResource("15_plant2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 0, 5)
+
+[node name="Plant_3" parent="." instance=ExtResource("14_plant1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -2)
+
+[node name="Plant_4" parent="." instance=ExtResource("15_plant2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 5.5)
+
+[node name="Painting_1" parent="." instance=ExtResource("21_painting")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -6.4, 2, -2)
+
+[node name="Painting_2" parent="." instance=ExtResource("21_painting")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -6.4, 2, 2)
+
+[node name="Painting_3" parent="." instance=ExtResource("21_painting")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 5.9)
+
+[node name="TrashBin_1" parent="." instance=ExtResource("22_trash")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 0, -1.5)
+
+[node name="TrashBin_2" parent="." instance=ExtResource("22_trash")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -4)
+
+[node name="TrashBin_3" parent="." instance=ExtResource("22_trash")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0, 3)
+
+[node name="SpawnPoints" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3)
+
+[node name="EnemySpawn_1" parent="SpawnPoints" instance=ExtResource("36_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 0, -1)
+
+[node name="EnemySpawn_2" parent="SpawnPoints" instance=ExtResource("36_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, -1)
+
+[node name="EnemySpawn_3" parent="SpawnPoints" instance=ExtResource("36_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -1.5)
+
+[node name="EnemySpawn_4" parent="SpawnPoints" instance=ExtResource("36_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 1)
+
+[node name="EnemySpawn_5" parent="SpawnPoints" instance=ExtResource("36_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 0, 2)
+
+[node name="EnemySpawn_6" parent="SpawnPoints" instance=ExtResource("36_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2)
+
+[node name="HostageSpawn_1" parent="SpawnPoints" instance=ExtResource("36_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 0)
+spawn_type = 1
+
+[node name="HostageSpawn_2" parent="SpawnPoints" instance=ExtResource("36_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 0)
+spawn_type = 1
+
+[node name="HostageSpawn_3" parent="SpawnPoints" instance=ExtResource("36_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0, 2.5)
+spawn_type = 1

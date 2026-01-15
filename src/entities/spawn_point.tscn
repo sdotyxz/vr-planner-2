@@ -1,0 +1,35 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/entities/spawn_point.gd" id="1_spawn_point"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_visual"]
+radius = 0.3
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_enemy"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.9, 0.2, 0.2, 0.8)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_arrow"]
+top_radius = 0.0
+bottom_radius = 0.15
+height = 0.4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_arrow"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.9, 0.2, 0.2, 0.8)
+
+[node name="SpawnPoint" type="Marker3D"]
+script = ExtResource("1_spawn_point")
+
+[node name="VisualMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("CapsuleMesh_visual")
+surface_material_override/0 = SubResource("StandardMaterial3D_enemy")
+
+[node name="ArrowMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 1.2, -0.4)
+mesh = SubResource("CylinderMesh_arrow")
+surface_material_override/0 = SubResource("StandardMaterial3D_arrow")
