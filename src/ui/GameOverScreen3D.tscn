@@ -72,6 +72,6 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Sprite3D" type="Sprite3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1)
 pixel_size = 0.001
 alpha_cut = 1

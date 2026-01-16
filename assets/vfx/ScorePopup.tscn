@@ -1,17 +1,23 @@
-[gd_scene load_steps=2 format=3 uid="uid://score_popup_001"]
+[gd_scene load_steps=4 format=3 uid="uid://score_popup_001"]
 
 [ext_resource type="Script" path="res://assets/vfx/ScorePopup.gd" id="1_script"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gold"]
+albedo_color = Color(1, 0.85, 0.2, 1)
+emission_enabled = true
+emission = Color(1, 0.7, 0.1, 1)
+emission_energy_multiplier = 0.5
+
+[sub_resource type="TextMesh" id="TextMesh_score"]
+text = "+100"
+font_size = 64
+depth = 0.25
 
 [node name="ScorePopup" type="Node3D"]
 script = ExtResource("1_script")
 
-[node name="Label3D" type="Label3D" parent="."]
-billboard = 1
-no_depth_test = true
-render_priority = 100
-outline_render_priority = 99
-modulate = Color(1, 0.85, 0.2, 1)
-text = "+100"
-font_size = 128
-outline_size = 16
-outline_modulate = Color(0, 0, 0, 1)
+[node name="TextMeshInstance" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+gi_mode = 0
+material_override = SubResource("StandardMaterial3D_gold")
+mesh = SubResource("TextMesh_score")

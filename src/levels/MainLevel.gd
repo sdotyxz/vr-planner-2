@@ -22,9 +22,9 @@ class_name MainLevel
 ## 是否可以点击重启（名字已提交后）
 var _can_click_restart: bool = false
 
-## 3D结算界面场景
-var game_over_screen_3d_scene: PackedScene = preload("res://src/ui/GameOverScreen3D.tscn")
-var game_over_screen_3d: Node3D = null
+## 3D结算界面场景（使用 TextMesh 3D字体）
+var game_over_screen_3d_scene: PackedScene = preload("res://src/ui/GameOverScreen3DText.tscn")
+var game_over_screen_3d: GameOverScreen3DText = null
 
 ## Office场景管理器
 var office_scene_manager: OfficeSceneManager = null
