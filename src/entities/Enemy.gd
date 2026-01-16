@@ -4,6 +4,9 @@ class_name Enemy
 
 signal died
 
+## 是否有关联的人质（击杀后救出人质，额外加分）
+var has_linked_hostage: bool = false
+
 ## 敌人模型场景列表
 const ENEMY_MODELS: Array[String] = [
 	"res://assets/scenes/enemy_1.tscn",

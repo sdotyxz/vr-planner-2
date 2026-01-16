@@ -190,11 +190,19 @@ func _shoot() -> void:
 
 func _hit_enemy(enemy: Node3D, point: Vector3, normal: Vector3) -> void:
 	AudioManager.play_sfx("hit")
-	GameManager.add_score(100)
+	
+	# 计算分数：基础100分，带有人质的敌人额外+50分
+	var base_score := 100
+	var bonus_score := 0
+	if enemy is Enemy and enemy.has_linked_hostage:
+		bonus_score = 50
+	var total_score := base_score + bonus_score
+	
+	GameManager.add_score(total_score)
 	GameManager.add_kill()
 	
 	# 在敌人位置生成浮动得分弹窗
-	VFXManager.spawn_score_popup(enemy.global_position + Vector3(0, 1.5, 0), 100)
+	VFXManager.spawn_score_popup(enemy.global_position + Vector3(0, 1.5, 0), total_score)
 	
 	if enemy.has_method("die"):
 		enemy.die()

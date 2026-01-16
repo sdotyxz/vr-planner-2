@@ -8,9 +8,14 @@ class_name MainLevel
 @onready var entities: Node3D = $Entities
 @onready var player: Player = $Player
 @onready var hud: HUD = $UI/HUD
+@onready var title_screen: Control = $UI/TitleScreen
 @onready var start_ui: Control = $UI/StartUI
 @onready var game_over_ui: Control = $UI/GameOverUI
 @onready var covers_container: Node3D = $Covers
+@onready var world_environment: WorldEnvironment = $WorldEnvironment
+
+## 标题界面是否已显示过（只显示一次）
+var _title_shown: bool = false
 
 # GameOver UI 元素 - 排行榜
 @onready var leaderboard_title: Label = $UI/GameOverUI/VBoxContainer/LeaderboardTitle
@@ -109,21 +114,19 @@ func _ready() -> void:
 	if front_door:
 		front_door.door_opened.connect(_on_front_door_opened)
 	
-	# 隐藏开始界面
+	# 隐藏所有UI
 	if start_ui:
 		start_ui.visible = false
 	if game_over_ui:
 		game_over_ui.visible = false
 	if hud:
-		hud.visible = true
+		hud.visible = false
 	
-	# 直接开始游戏
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-	_respawn_enemies()
-	GameManager.set_state(GameManager.GameState.PLAYING)
-	await get_tree().create_timer(0.5).timeout
-	if rail_system:
-		rail_system.start_moving()
+	# 首次启动显示标题界面
+	if title_screen:
+		title_screen.visible = true
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+		GameManager.set_state(GameManager.GameState.START)
 
 
 func _process(delta: float) -> void:
@@ -143,12 +146,43 @@ func _process(delta: float) -> void:
 			_on_time_up()
 
 
+func _input(event: InputEvent) -> void:
+	# 标题界面：点击任意位置开始游戏
+	if not _title_shown and title_screen and title_screen.visible:
+		if event is InputEventMouseButton and event.pressed:
+			_dismiss_title_and_start()
+			get_viewport().set_input_as_handled()
+			return
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	# 游戏结束界面：点击任意位置重新开始
 	if _can_click_restart and GameManager.current_state == GameManager.GameState.GAME_OVER:
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_on_restart_button_pressed()
 			get_viewport().set_input_as_handled()
+
+
+## 关闭标题界面并开始游戏
+func _dismiss_title_and_start() -> void:
+	_title_shown = true
+	if title_screen:
+		title_screen.visible = false
+	_start_game()
+
+
+## 开始游戏
+func _start_game() -> void:
+	if hud:
+		hud.visible = true
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	_respawn_enemies()
+	GameManager.set_state(GameManager.GameState.PLAYING)
+	await get_tree().create_timer(0.5).timeout
+	if rail_system:
+		rail_system.start_moving()
+
+
 func _update_timer_display() -> void:
 	# 倒计时已移除，此函数保留但不做任何操作
 	pass
@@ -172,6 +206,9 @@ func _trigger_game_over() -> void:
 	
 	# 清除所有射击提示
 	_clear_shooting_hints()
+	
+	# 快速调暗场景灯光
+	_dim_scene_lights()
 	
 	# 延迟后显示结算界面
 	await get_tree().create_timer(1.0).timeout
@@ -338,6 +375,32 @@ func _clear_shooting_hints() -> void:
 			hint.queue_free()
 	shooting_hints.clear()
 	hint_to_enemy.clear()
+
+
+## 调暗场景灯光（游戏结束时）
+func _dim_scene_lights() -> void:
+	if not world_environment or not world_environment.environment:
+		return
+	
+	var env := world_environment.environment
+	var tween := create_tween()
+	
+	# 调暗天空背景亮度
+	if env.background_mode == Environment.BG_SKY and env.sky:
+		tween.tween_property(env, "background_energy_multiplier", 0.5, 0.5)
+
+
+## 恢复场景灯光（重启游戏时）
+func _restore_scene_lights() -> void:
+	if not world_environment or not world_environment.environment:
+		return
+	
+	var env := world_environment.environment
+	var tween := create_tween()
+	
+	# 恢复天空背景亮度
+	if env.background_mode == Environment.BG_SKY and env.sky:
+		tween.tween_property(env, "background_energy_multiplier", 1.0, 0.3)
 
 
 ## 检查屏幕位置是否命中射击提示，返回对应的敌人（如果有）
@@ -575,6 +638,7 @@ func _spawn_from_office_scene() -> void:
 		if not spawned_enemies.is_empty():
 			var linked_enemy := spawned_enemies[enemy_index % spawned_enemies.size()]
 			if is_instance_valid(linked_enemy):
+				linked_enemy.has_linked_hostage = true
 				linked_enemy.died.connect(_on_linked_enemy_died.bind(hostage))
 			enemy_index += 1
 	
@@ -757,6 +821,7 @@ func _respawn_enemies_legacy() -> void:
 		# 关联敌人和人质：敌人死亡时人质也消失
 		var linked_enemy: Enemy = enemy_info["node"] as Enemy
 		if linked_enemy and is_instance_valid(linked_enemy):
+			linked_enemy.has_linked_hostage = true
 			linked_enemy.died.connect(_on_linked_enemy_died.bind(hostage))
 		
 		# 移除已使用的敌人，避免多个人质在同一敌人旁边
@@ -985,6 +1050,9 @@ func _on_restart_button_pressed() -> void:
 	if game_over_screen_3d:
 		game_over_screen_3d.queue_free()
 		game_over_screen_3d = null
+	
+	# 恢复场景灯光
+	_restore_scene_lights()
 	
 	# 重置游戏状态
 	GameManager.reset_stats()

@@ -6,12 +6,12 @@ class_name ScorePopup
 var text_mesh: TextMesh
 
 ## 动画参数
-const FLOAT_HEIGHT: float = 0.5  ## 向上飘动高度
-const DURATION: float = 1.0  ## 持续时间
+const FLOAT_HEIGHT: float = 1.0  ## 向上飘动高度
+const DURATION: float = 0.6  ## 持续时间
 const SCALE_START: float = 0.5  ## 起始缩放
 const SCALE_PEAK: float = 1.2  ## 峰值缩放
 const SWING_ANGLE: float = deg_to_rad(15.0)  ## 摆动角度（左右15度）
-const SWING_COUNT: float = 3.0  ## 摆动次数
+const SWING_COUNT: float = 2.0  ## 摆动次数
 
 ## 颜色材质
 var material: StandardMaterial3D

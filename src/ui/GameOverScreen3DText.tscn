@@ -1,62 +1,114 @@
-[gd_scene load_steps=5 format=3 uid="uid://dm6f7gyy0bvj2"]
+[gd_scene load_steps=12 format=3 uid="uid://dm6f7gyy0bvj2"]
 
 [ext_resource type="Script" path="res://src/ui/GameOverScreen3DText.gd" id="1_script"]
+[ext_resource type="FontFile" uid="uid://dxkxvj6d4jm8i" path="res://assets/Kenney Future Narrow.ttf" id="2_font"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_title"]
+shading_mode = 0
 albedo_color = Color(1, 0.2, 0.2, 1)
-emission_enabled = true
-emission = Color(1, 0.1, 0.1, 1)
-emission_energy_multiplier = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_title_outline"]
+shading_mode = 0
+albedo_color = Color(0.1, 0.0, 0.0, 1)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_subtitle"]
+shading_mode = 0
 albedo_color = Color(1, 0.85, 0.3, 1)
-emission_enabled = true
-emission = Color(1, 0.7, 0.1, 1)
-emission_energy_multiplier = 0.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_subtitle_outline"]
+shading_mode = 0
+albedo_color = Color(0.1, 0.05, 0.0, 1)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hint"]
-albedo_color = Color(0.7, 0.7, 0.7, 1)
-emission_enabled = true
-emission = Color(0.5, 0.5, 0.5, 1)
-emission_energy_multiplier = 0.3
+shading_mode = 0
+albedo_color = Color(0.3, 1.0, 0.3, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hint_outline"]
+shading_mode = 0
+albedo_color = Color(0.05, 0.05, 0.05, 1)
 
 [sub_resource type="TextMesh" id="TextMesh_title"]
+font = ExtResource("2_font")
 text = "GAME OVER"
-font_size = 96
-depth = 0.2
+font_size = 38
+depth = 0.05
+
+[sub_resource type="TextMesh" id="TextMesh_title_outline"]
+font = ExtResource("2_font")
+text = "GAME OVER"
+font_size = 38
+depth = 0.02
 
 [sub_resource type="TextMesh" id="TextMesh_subtitle"]
+font = ExtResource("2_font")
 text = "HIGH SCORES"
-font_size = 48
-depth = 0.2
+font_size = 19
+depth = 0.05
+
+[sub_resource type="TextMesh" id="TextMesh_subtitle_outline"]
+font = ExtResource("2_font")
+text = "HIGH SCORES"
+font_size = 19
+depth = 0.02
 
 [sub_resource type="TextMesh" id="TextMesh_hint"]
+font = ExtResource("2_font")
 text = "CLICK TO RESTART"
-font_size = 24
-depth = 0.1
+font_size = 10
+depth = 0.05
+
+[sub_resource type="TextMesh" id="TextMesh_hint_outline"]
+font = ExtResource("2_font")
+text = "CLICK TO RESTART"
+font_size = 10
+depth = 0.02
 
 [node name="GameOverScreen3DText" type="Node3D"]
 script = ExtResource("1_script")
 
+[node name="TitleOutline" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.03, 0, 0, 0, 1.03, 0, 0, 0, 1, 0, 0.9, -0.01)
+visible = false
+cast_shadow = 0
+gi_mode = 0
+material_override = SubResource("StandardMaterial3D_title_outline")
+mesh = SubResource("TextMesh_title_outline")
+
 [node name="TitleMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 cast_shadow = 0
 gi_mode = 0
 material_override = SubResource("StandardMaterial3D_title")
 mesh = SubResource("TextMesh_title")
 
+[node name="SubtitleOutline" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.04, 0, 0, 0, 1.04, 0, 0, 0, 1, 0, 0.6, -0.01)
+visible = false
+cast_shadow = 0
+gi_mode = 0
+material_override = SubResource("StandardMaterial3D_subtitle_outline")
+mesh = SubResource("TextMesh_subtitle_outline")
+
 [node name="SubtitleMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 cast_shadow = 0
 gi_mode = 0
 material_override = SubResource("StandardMaterial3D_subtitle")
 mesh = SubResource("TextMesh_subtitle")
 
 [node name="ScoreContainer" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+
+[node name="HintOutline" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.04, 0, 0, 0, 1.04, 0, 0, 0, 1, 0, -0.8, -0.01)
+visible = false
+cast_shadow = 0
+gi_mode = 0
+material_override = SubResource("StandardMaterial3D_hint_outline")
+mesh = SubResource("TextMesh_hint_outline")
 
 [node name="HintMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.8, 0)
 visible = false
 cast_shadow = 0
 gi_mode = 0
