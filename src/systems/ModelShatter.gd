@@ -53,6 +53,7 @@ func _collect_meshes(node: Node, meshes: Array[Dictionary]) -> void:
 ## 创建物理碎片
 func _create_fragments(meshes: Array[Dictionary], explosion_center: Vector3, force: float, fragment_count: int) -> void:
 	# 计算每个mesh分配的碎片数
+	@warning_ignore("integer_division")
 	var fragments_per_mesh := maxi(1, fragment_count / maxi(1, meshes.size()))
 	
 	for mesh_data in meshes:
@@ -73,7 +74,7 @@ func _create_fragments(meshes: Array[Dictionary], explosion_center: Vector3, for
 
 
 ## 创建单个碎片
-func _create_single_fragment(original_mesh: Mesh, material: Material, mesh_transform: Transform3D, mesh_center: Vector3, mesh_size: Vector3, explosion_center: Vector3, force: float, index: int, total: int) -> RigidBody3D:
+func _create_single_fragment(_original_mesh: Mesh, material: Material, _mesh_transform: Transform3D, mesh_center: Vector3, mesh_size: Vector3, explosion_center: Vector3, force: float, index: int, total: int) -> RigidBody3D:
 	var fragment := RigidBody3D.new()
 	fragment.name = "Fragment_%d" % index
 	add_child(fragment)
@@ -159,20 +160,39 @@ func _start_fade_timer() -> void:
 		return
 	
 	# 淡出所有碎片
-	var tween := create_tween()
-	tween.set_parallel(true)
-	
+	var has_valid_fragments := false
 	for fragment in fragments:
 		if is_instance_valid(fragment):
-			# 淡出材质
+			has_valid_fragments = true
+			break
+	
+	if not has_valid_fragments:
+		queue_free()
+		return
+	
+	# 收集所有需要淡出的材质
+	var materials_to_fade: Array[StandardMaterial3D] = []
+	for fragment in fragments:
+		if is_instance_valid(fragment):
 			for child in fragment.get_children():
 				if child is MeshInstance3D:
 					var mesh_inst := child as MeshInstance3D
-					var mat: Material = mesh_inst.mesh.material
-					if mat is StandardMaterial3D:
-						var std_mat := mat as StandardMaterial3D
-						std_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-						tween.tween_property(std_mat, "albedo_color:a", 0.0, FADE_DURATION)
+					if mesh_inst.mesh:
+						var mat: Material = mesh_inst.mesh.material
+						if mat is StandardMaterial3D:
+							var std_mat := mat as StandardMaterial3D
+							std_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+							materials_to_fade.append(std_mat)
+	
+	if materials_to_fade.is_empty():
+		queue_free()
+		return
+	
+	var tween := create_tween()
+	tween.set_parallel(true)
+	
+	for mat in materials_to_fade:
+		tween.tween_property(mat, "albedo_color:a", 0.0, FADE_DURATION)
 	
 	await tween.finished
 	queue_free()

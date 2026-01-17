@@ -1,8 +1,12 @@
-[gd_resource type="StandardMaterial3D" format=3 uid="uid://redglow001"]
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://redglow001"]
+
+[ext_resource type="Shader" uid="uid://d0j0railchiao" path="res://Shaders/complete_toon.gdshader" id="1_shader"]
 
 [resource]
-albedo_color = Color(1, 0.2, 0.2, 1)
-metallic_specular = 1.0
-emission_enabled = true
-emission = Color(1, 0, 0, 1)
-emission_energy_multiplier = 2.0
+render_priority = 0
+shader = ExtResource("1_shader")
+shader_parameter/color = Color(1, 0.2, 0.2, 1)
+shader_parameter/specular = Color(0.5, 0.3, 0.3, 0.6)
+shader_parameter/fresnel = Color(1, 0.3, 0.3, 0.4)
+shader_parameter/uv_scale = Vector2(1, 1)
+shader_parameter/uv_offset = Vector2(0, 0)

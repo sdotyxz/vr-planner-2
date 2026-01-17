@@ -1,7 +1,7 @@
 [gd_scene load_steps=12 format=3 uid="uid://dm6f7gyy0bvj2"]
 
 [ext_resource type="Script" path="res://src/ui/GameOverScreen3DText.gd" id="1_script"]
-[ext_resource type="FontFile" uid="uid://dxkxvj6d4jm8i" path="res://assets/Kenney Future Narrow.ttf" id="2_font"]
+[ext_resource type="FontFile" uid="uid://2rjape1he4y4" path="res://assets/Kenney Future Narrow.ttf" id="2_font"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_title"]
 shading_mode = 0

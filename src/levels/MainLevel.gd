@@ -9,6 +9,7 @@ class_name MainLevel
 @onready var player: Player = $Player
 @onready var hud: HUD = $UI/HUD
 @onready var title_screen: Control = $UI/TitleScreen
+@onready var fire_to_start: Label = $UI/TitleScreen/FireToStart
 @onready var start_ui: Control = $UI/StartUI
 @onready var game_over_ui: Control = $UI/GameOverUI
 @onready var covers_container: Node3D = $Covers
@@ -16,6 +17,9 @@ class_name MainLevel
 
 ## 标题界面是否已显示过（只显示一次）
 var _title_shown: bool = false
+
+## 闪烁动画 Tween
+var _blink_tween: Tween = null
 
 # GameOver UI 元素 - 排行榜
 @onready var leaderboard_title: Label = $UI/GameOverUI/VBoxContainer/LeaderboardTitle
@@ -119,14 +123,16 @@ func _ready() -> void:
 		start_ui.visible = false
 	if game_over_ui:
 		game_over_ui.visible = false
-	if hud:
-		hud.visible = false
 	
 	# 首次启动显示标题界面
 	if title_screen:
 		title_screen.visible = true
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)  # 使用准心模式
 		GameManager.set_state(GameManager.GameState.START)
+		_start_blink_animation()
+		# 显示HUD以显示准心
+		if hud:
+			hud.visible = true
 
 
 func _process(delta: float) -> void:
@@ -147,9 +153,9 @@ func _process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	# 标题界面：点击任意位置开始游戏
+	# 标题界面：射击开始游戏
 	if not _title_shown and title_screen and title_screen.visible:
-		if event is InputEventMouseButton and event.pressed:
+		if event.is_action_pressed("fire"):
 			_dismiss_title_and_start()
 			get_viewport().set_input_as_handled()
 			return
@@ -167,10 +173,13 @@ func _unhandled_input(event: InputEvent) -> void:
 func _dismiss_title_and_start() -> void:
 	_title_shown = true
 	
+	# 停止闪烁动画
+	_stop_blink_animation()
+	
 	# 播放开始游戏音效并等待播放完成
-	var player := AudioManager.play_sfx_and_wait("game_start")
-	if player:
-		await player.finished
+	var audio_player := AudioManager.play_sfx_and_wait("game_start")
+	if audio_player:
+		await audio_player.finished
 	
 	if title_screen:
 		title_screen.visible = false
@@ -188,6 +197,32 @@ func _start_game() -> void:
 	
 	_respawn_enemies()
 	GameManager.set_state(GameManager.GameState.PLAYING)
+
+
+## 开始 FIRE TO START 闪烁动画
+func _start_blink_animation() -> void:
+	if not fire_to_start:
+		return
+	
+	# 停止现有动画
+	if _blink_tween and _blink_tween.is_valid():
+		_blink_tween.kill()
+	
+	# 创建循环闪烁动画
+	_blink_tween = create_tween().set_loops()
+	_blink_tween.tween_property(fire_to_start, "modulate:a", 0.3, 0.5).set_ease(Tween.EASE_IN_OUT)
+	_blink_tween.tween_property(fire_to_start, "modulate:a", 1.0, 0.5).set_ease(Tween.EASE_IN_OUT)
+
+
+## 停止 FIRE TO START 闪烁动画
+func _stop_blink_animation() -> void:
+	if _blink_tween and _blink_tween.is_valid():
+		_blink_tween.kill()
+		_blink_tween = null
+	
+	# 恢复完全不透明
+	if fire_to_start:
+		fire_to_start.modulate.a = 1.0
 	await get_tree().create_timer(0.5).timeout
 	if rail_system:
 		rail_system.start_moving()
@@ -377,12 +412,9 @@ func _spawn_shooting_hints() -> void:
 ## 敌人死亡时移除对应的射击提示
 func _on_enemy_died_remove_hint(hint: Node3D) -> void:
 	if is_instance_valid(hint):
-		# 淡出动画
-		var tween := create_tween()
-		tween.tween_property(hint, "modulate:a", 0.0, 0.2)
-		tween.tween_callback(hint.queue_free)
 		shooting_hints.erase(hint)
 		hint_to_enemy.erase(hint)
+		hint.queue_free()
 
 
 ## 清除所有射击提示
@@ -403,10 +435,10 @@ func _dim_scene_lights() -> void:
 		return
 	
 	var env := world_environment.environment
-	var tween := create_tween()
 	
 	# 调暗天空背景亮度
 	if env.background_mode == Environment.BG_SKY and env.sky:
+		var tween := create_tween()
 		tween.tween_property(env, "background_energy_multiplier", 0.5, 0.5)
 
 
@@ -416,10 +448,10 @@ func _restore_scene_lights() -> void:
 		return
 	
 	var env := world_environment.environment
-	var tween := create_tween()
 	
 	# 恢复天空背景亮度
 	if env.background_mode == Environment.BG_SKY and env.sky:
+		var tween := create_tween()
 		tween.tween_property(env, "background_energy_multiplier", 1.0, 0.3)
 
 
@@ -465,9 +497,9 @@ func check_shooting_hint_hit(screen_pos: Vector2, cam: Camera3D) -> Enemy:
 			var fov_rad := deg_to_rad(cam.fov)
 			var projected_radius: float = (world_radius / maxf(distance_to_cam, 0.1)) * (viewport_size.y * 0.5) / tan(fov_rad * 0.5)
 			
-			# 添加 2.5 倍容差，让判定更宽松（视觉提示比判定区域小）
-			var screen_radius: float = projected_radius * 2.5
-			screen_radius = clampf(screen_radius, 80.0, 300.0)  # 提高最小值到80像素
+			# 无额外容差，判定区域与视觉提示一致
+			var screen_radius: float = projected_radius * 1.0
+			screen_radius = clampf(screen_radius, 50.0, 300.0)  # 最小50像素，更严格的判定
 			
 			# 检查鼠标是否在范围内
 			var dist_to_hint := screen_pos.distance_to(hint_screen_pos)
@@ -524,8 +556,8 @@ func calculate_kill_score(screen_pos: Vector2, cam: Camera3D, enemy: Enemy) -> i
 	var world_radius: float = 0.32 * hint.scale.x
 	var fov_rad := deg_to_rad(cam.fov)
 	var projected_radius: float = (world_radius / maxf(distance_to_cam, 0.1)) * (viewport_size.y * 0.5) / tan(fov_rad * 0.5)
-	var screen_radius: float = projected_radius * 2.5
-	screen_radius = clampf(screen_radius, 80.0, 300.0)
+	var screen_radius: float = projected_radius * 1.0
+	screen_radius = clampf(screen_radius, 50.0, 300.0)
 	
 	# 计算分数：距离越近分数越高
 	# 中心 = 200分，边缘 = 50分
@@ -615,8 +647,8 @@ func _on_hostage_died() -> void:
 ## 关联的敌人被击杀时，人质也消失（被救出）
 func _on_linked_enemy_died(hostage: Hostage) -> void:
 	if is_instance_valid(hostage):
-		# 人质被救出：变成绿色，0.5秒后消失
-		hostage._set_model_color(Color(0.3, 1.0, 0.3, 1.0))  # 绿色
+		# 人质被救出：变成绿色安全材质，0.5秒后消失
+		hostage.set_safe_material()
 		await get_tree().create_timer(0.5).timeout
 		if is_instance_valid(hostage):
 			hostage.queue_free()
@@ -782,8 +814,6 @@ func _respawn_enemies_legacy() -> void:
 	var min_spacing := 3.5
 	var enemy_z_min := -26.0
 	var enemy_z_max := -16.0
-	var hostage_z_min := -32.0
-	var hostage_z_max := -28.0
 	
 	if enemy_spawn_area:
 		var x_range := enemy_spawn_area.get_x_range()
@@ -793,11 +823,6 @@ func _respawn_enemies_legacy() -> void:
 		enemy_z_min = z_range.x
 		enemy_z_max = z_range.y
 		min_spacing = enemy_spawn_area.min_spacing
-	
-	if hostage_spawn_area:
-		var z_range := hostage_spawn_area.get_z_range()
-		hostage_z_min = z_range.x
-		hostage_z_max = z_range.y
 	
 	if door_avoid_area:
 		var x_range := door_avoid_area.get_x_range()
@@ -1281,7 +1306,6 @@ func _refresh_leaderboard_with_input() -> void:
 			_start_restart_delay()
 	
 	# 生成排行榜行
-	var display_index := 0
 	for i in range(LeaderboardManager.MAX_ENTRIES):
 		var row := HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1293,13 +1317,6 @@ func _refresh_leaderboard_with_input() -> void:
 			leaderboard_container.add_child(row)
 			continue
 		
-		# 调整索引：如果玩家排名在当前位置之前，需要偏移
-		var data_index := display_index
-		if _player_rank >= 0 and i > _player_rank:
-			data_index = display_index
-		else:
-			data_index = display_index
-		
 		# 计算实际数据索引
 		var actual_index := i
 		if _player_rank >= 0 and i > _player_rank:
@@ -1307,9 +1324,6 @@ func _refresh_leaderboard_with_input() -> void:
 		
 		_create_score_row(row, i + 1, leaderboard, actual_index)
 		leaderboard_container.add_child(row)
-		
-		if _player_rank < 0 or i < _player_rank:
-			display_index += 1
 
 
 ## 创建带名字输入框的行（无按钮，只用回车确认）

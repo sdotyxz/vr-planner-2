@@ -18,6 +18,9 @@ class_name HUD
 var mouse_position: Vector2 = Vector2.ZERO
 var _recoil_tween: Tween = null
 
+## 调试：显示鼠标位置
+@export var debug_show_mouse: bool = false
+
 
 func _ready() -> void:
 	# 确保 HUD 不拦截任何鼠标事件
@@ -44,16 +47,22 @@ func _set_children_mouse_filter(node: Node) -> void:
 func _update_crosshair_size() -> void:
 	if crosshair_inner:
 		crosshair_inner.custom_minimum_size = Vector2(crosshair_size, crosshair_size)
-		crosshair_inner.size = Vector2(crosshair_size, crosshair_size)
 		crosshair_inner.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		crosshair_inner.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		crosshair_inner.pivot_offset = crosshair_inner.size / 2
 	if crosshair_outer:
 		crosshair_outer.custom_minimum_size = Vector2(crosshair_outer_size, crosshair_outer_size)
-		crosshair_outer.size = Vector2(crosshair_outer_size, crosshair_outer_size)
 		crosshair_outer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		crosshair_outer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		crosshair_outer.pivot_offset = crosshair_outer.size / 2
+	# 等待布局完成后设置 pivot_offset
+	await get_tree().process_frame
+	_update_pivot_offsets()
+
+
+func _update_pivot_offsets() -> void:
+	if crosshair_inner:
+		crosshair_inner.pivot_offset = crosshair_inner.size / 2.0
+	if crosshair_outer:
+		crosshair_outer.pivot_offset = crosshair_outer.size / 2.0
 
 
 func _input(event: InputEvent) -> void:
@@ -69,9 +78,30 @@ func _input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	# 更新准心位置跟随鼠标（准心中心对准鼠标位置）
 	if crosshair:
-		# CenterContainer 的 pivot 在左上角，所以需要偏移一半的尺寸
-		var half_size := Vector2(32, 32)  # CenterContainer 尺寸是 64x64
-		crosshair.position = mouse_position - half_size
+		# 动态获取 CenterContainer 的实际尺寸，使其中心对准鼠标
+		var container_size := crosshair.size
+		crosshair.position = mouse_position - container_size / 2.0
+	
+	# 调试绘制
+	if debug_show_mouse:
+		queue_redraw()
+
+
+func _draw() -> void:
+	if debug_show_mouse:
+		# 绘制红色十字表示鼠标位置
+		var cross_size := 10.0
+		var color := Color.RED
+		draw_line(mouse_position - Vector2(cross_size, 0), mouse_position + Vector2(cross_size, 0), color, 2.0)
+		draw_line(mouse_position - Vector2(0, cross_size), mouse_position + Vector2(0, cross_size), color, 2.0)
+		# 绘制一个小圆点
+		draw_circle(mouse_position, 3.0, color)
+		
+		# 也绘制准心容器的中心位置（绿色）
+		if crosshair:
+			var crosshair_center := crosshair.position + crosshair.size / 2.0
+			draw_line(crosshair_center - Vector2(cross_size, 0), crosshair_center + Vector2(cross_size, 0), Color.GREEN, 2.0)
+			draw_line(crosshair_center - Vector2(0, cross_size), crosshair_center + Vector2(0, cross_size), Color.GREEN, 2.0)
 
 
 ## 播放射击后坐力动画（外圈准心放大后恢复）
@@ -82,6 +112,9 @@ func play_recoil() -> void:
 	# 取消正在进行的动画
 	if _recoil_tween and _recoil_tween.is_valid():
 		_recoil_tween.kill()
+	
+	# 确保 pivot_offset 以中心缩放
+	crosshair_outer.pivot_offset = crosshair_outer.size / 2.0
 	
 	# 立即放大
 	crosshair_outer.scale = Vector2(recoil_scale, recoil_scale)

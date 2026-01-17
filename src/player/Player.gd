@@ -192,7 +192,7 @@ func _shoot() -> void:
 		_hit_hostage(collider)
 
 
-func _hit_enemy(enemy: Node3D, point: Vector3, normal: Vector3) -> void:
+func _hit_enemy(enemy: Node3D, _point: Vector3, _normal: Vector3) -> void:
 	AudioManager.play_sfx("hit")
 	
 	# 获取鼠标位置用于计算分数

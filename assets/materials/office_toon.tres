@@ -1,0 +1,13 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://office_toon01"]
+
+[ext_resource type="Shader" uid="uid://dj08mvgdyjkc2" path="res://Shaders/complete_toon.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" uid="uid://cvjia48j62a83" path="res://assets/models/furniture/VNB Low Poly Office Set/palette1.png" id="2_texture"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/color = Color(1, 1, 1, 1)
+shader_parameter/base_texture = ExtResource("2_texture")
+shader_parameter/specular = Color(0.3, 0.3, 0.3, 0.4)
+shader_parameter/fresnel = Color(0.2, 0.2, 0.2, 0.2)
+shader_parameter/uv_scale = Vector2(1, 1)
+shader_parameter/uv_offset = Vector2(0, 0)

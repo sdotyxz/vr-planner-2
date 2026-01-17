@@ -84,3 +84,19 @@ func _apply_color_to_node(node: Node, color: Color) -> void:
 	
 	for child in node.get_children():
 		_apply_color_to_node(child, color)
+
+
+## 设置人质模型为绿色安全材质
+func set_safe_material() -> void:
+	var green_material := load("res://assets/materials/green_safe.tres") as Material
+	if green_material and model_instance:
+		_apply_material_to_node(model_instance, green_material)
+
+
+func _apply_material_to_node(node: Node, material: Material) -> void:
+	if node is MeshInstance3D:
+		var mesh_instance := node as MeshInstance3D
+		mesh_instance.set_surface_override_material(0, material)
+	
+	for child in node.get_children():
+		_apply_material_to_node(child, material)

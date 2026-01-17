@@ -34,7 +34,6 @@ signal reached_waypoint1        # 到达路径点1（门前）
 signal door_ready_to_open       # 准备开门
 signal passed_door              # 穿过门
 signal reached_waypoint2        # 到达路径点2（射击位置）
-signal shooting_complete        # 射击阶段完成
 signal reached_waypoint3        # 到达路径点3
 signal ready_to_teleport        # 准备传送回路径点1
 

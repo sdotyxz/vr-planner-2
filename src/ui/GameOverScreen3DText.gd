@@ -386,9 +386,9 @@ func _trigger_typing_effect() -> void:
 				VFXManager.spawn_vfx("muzzle", vfx_position, Vector3.BACK)
 	
 	# 屏幕抖动
-	var player = get_tree().get_first_node_in_group("player")
-	if player and player.has_method("shake_camera"):
-		player.shake_camera(0.03, 0.05)
+	var player_node = get_tree().get_first_node_in_group("player")
+	if player_node and player_node.has_method("shake_camera"):
+		player_node.shake_camera(0.03, 0.05)
 
 
 ## 提交玩家名字
@@ -414,7 +414,7 @@ func _submit_player_name() -> void:
 	_show_final_leaderboard()
 
 
-func _auto_submit_score(score: int) -> void:
+func _auto_submit_score(_score: int) -> void:
 	# 已废弃，保留以兼容旧调用
 	if _name_submitted:
 		return

@@ -21,20 +21,18 @@ func open() -> void:
 	AudioManager.play_sfx("door_kick", 20.0)
 	
 	# 触发相机抖动效果
-	var player = get_tree().get_first_node_in_group("player")
-	if player and player.has_method("shake_camera"):
-		player.shake_camera()
+	var player_node = get_tree().get_first_node_in_group("player")
+	if player_node and player_node.has_method("shake_camera"):
+		player_node.shake_camera()
 	
 	# 播放开门动画（门向前倒下）
-	var tween := create_tween()
-	tween.set_ease(Tween.EASE_IN)  # 加速倒下效果
-	tween.set_trans(Tween.TRANS_QUAD)
-	
 	if door_pivot:
+		var tween := create_tween()
+		tween.set_ease(Tween.EASE_IN)  # 加速倒下效果
+		tween.set_trans(Tween.TRANS_QUAD)
 		# 绕X轴旋转，使门向前倒下（远离玩家）
 		tween.tween_property(door_pivot, "rotation_degrees:x", -fall_angle, open_duration)
-	
-	await tween.finished
+		await tween.finished
 	door_opened.emit()
 
 
@@ -43,7 +41,7 @@ func close() -> void:
 		return
 	is_open = false
 	
-	var tween := create_tween()
 	if door_pivot:
+		var tween := create_tween()
 		# 恢复到初始位置
 		tween.tween_property(door_pivot, "rotation_degrees:x", 0.0, open_duration)
