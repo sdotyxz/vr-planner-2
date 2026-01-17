@@ -9,6 +9,11 @@ class_name RailSystem
 @export var proximity_threshold: float = 0.1  # 到达点位的判定距离
 @export var is_moving: bool = false
 
+## 脚步声间隔（秒）
+@export var footstep_interval: float = 0.4
+## 脚步声计时器
+var _footstep_timer: float = 0.0
+
 @onready var path_follow: PathFollow3D = $PathFollow3D
 
 # 轨道阶段
@@ -93,6 +98,12 @@ func _process(delta: float) -> void:
 	
 	path_follow.progress += speed * delta
 	
+	# 播放脚步声
+	_footstep_timer += delta
+	if _footstep_timer >= footstep_interval:
+		_footstep_timer = 0.0
+		AudioManager.play_sfx("footstep", -5.0)  # 稍微降低音量
+	
 	match current_stage:
 		Stage.TO_WAYPOINT1:
 			# 到达路径点1（门前）
@@ -123,11 +134,13 @@ func start_moving() -> void:
 	"""开始从出生点移动"""
 	current_stage = Stage.TO_WAYPOINT1
 	_update_target_progress()
+	_footstep_timer = 0.0
 	is_moving = true
 
 
 func stop_moving() -> void:
 	is_moving = false
+	_footstep_timer = 0.0
 
 
 func open_door_and_pass() -> void:

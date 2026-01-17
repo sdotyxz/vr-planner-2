@@ -166,6 +166,12 @@ func _unhandled_input(event: InputEvent) -> void:
 ## 关闭标题界面并开始游戏
 func _dismiss_title_and_start() -> void:
 	_title_shown = true
+	
+	# 播放开始游戏音效并等待播放完成
+	var player := AudioManager.play_sfx_and_wait("game_start")
+	if player:
+		await player.finished
+	
 	if title_screen:
 		title_screen.visible = false
 	_start_game()
@@ -176,6 +182,10 @@ func _start_game() -> void:
 	if hud:
 		hud.visible = true
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	
+	# 开始播放BGM（随机循环）
+	AudioManager.start_bgm_loop()
+	
 	_respawn_enemies()
 	GameManager.set_state(GameManager.GameState.PLAYING)
 	await get_tree().create_timer(0.5).timeout
@@ -199,6 +209,12 @@ func _trigger_game_over() -> void:
 		return
 	
 	GameManager.set_state(GameManager.GameState.GAME_OVER)
+	
+	# 停止BGM
+	AudioManager.stop_bgm()
+	
+	# 播放游戏结束音效
+	AudioManager.play_sfx("game_over")
 	
 	# 禁用玩家控制
 	if player:
@@ -228,7 +244,11 @@ func _count_enemies() -> void:
 func _on_reached_waypoint1() -> void:
 	# 到达路径点1（门前），在此停留并准备开门
 	GameManager.set_state(GameManager.GameState.BREACH)
-	await get_tree().create_timer(0.2).timeout  # 短暂停留
+	
+	# 播放上弹音效
+	AudioManager.play_sfx("reload")
+	
+	await get_tree().create_timer(0.7).timeout  # 等待0.7秒
 	# 开门并继续移动
 	if rail_system:
 		rail_system.open_door_and_pass()
@@ -322,10 +342,10 @@ func _spawn_shooting_hints() -> void:
 		
 		var enemy: Enemy = enemies[i]
 		
-		# 在敌人判定点生成射击提示（敌人中心偏上，大约胸部位置）
+		# 在敌人头部锚点位置生成射击提示
 		var hint := shooting_hint_scene.instantiate() as Node3D
 		add_child(hint)
-		hint.global_position = enemy.global_position + Vector3(0, 1.2, 0)
+		hint.global_position = enemy.get_head_position()
 		shooting_hints.append(hint)
 		hint_to_enemy[hint] = enemy  # 记录映射关系
 		
@@ -415,6 +435,9 @@ func check_shooting_hint_hit(screen_pos: Vector2, cam: Camera3D) -> Enemy:
 	var closest_enemy: Enemy = null
 	var closest_dist: float = INF
 	
+	# 调试：打印鼠标位置和视口大小
+	print("[DEBUG] Mouse: %s, Viewport: %s" % [screen_pos, viewport_size])
+	
 	for hint in shooting_hints:
 		if not is_instance_valid(hint):
 			continue
@@ -431,20 +454,88 @@ func check_shooting_hint_hit(screen_pos: Vector2, cam: Camera3D) -> Enemy:
 			# 投影到屏幕坐标
 			var hint_screen_pos := cam.unproject_position(hint_world_pos)
 			
-			# 计算射击提示在屏幕上的半径（根据缩放和距离）
+			# 计算射击提示在屏幕上的半径
 			var distance_to_cam := cam.global_position.distance_to(hint_world_pos)
-			# 基础半径（像素），根据距离调整
-			var base_radius: float = 60.0 * hint.scale.x  # 考虑缩放动画
-			var screen_radius: float = base_radius * (5.0 / maxf(distance_to_cam, 1.0))
-			screen_radius = clampf(screen_radius, 30.0, 150.0)  # 限制范围
+			
+			# ShootingHint 的 pixel_size = 0.01，纹理约 64 像素，世界尺寸约 0.64 米
+			# 半径 = 0.32 米 * 缩放（动画从2到1）
+			var world_radius: float = 0.32 * hint.scale.x
+			
+			# 使用透视投影公式计算屏幕半径
+			var fov_rad := deg_to_rad(cam.fov)
+			var projected_radius: float = (world_radius / maxf(distance_to_cam, 0.1)) * (viewport_size.y * 0.5) / tan(fov_rad * 0.5)
+			
+			# 添加 2.5 倍容差，让判定更宽松（视觉提示比判定区域小）
+			var screen_radius: float = projected_radius * 2.5
+			screen_radius = clampf(screen_radius, 80.0, 300.0)  # 提高最小值到80像素
 			
 			# 检查鼠标是否在范围内
 			var dist_to_hint := screen_pos.distance_to(hint_screen_pos)
+			
+			# 调试：打印每个提示的位置和判定信息
+			print("[DEBUG] Hint at screen: %s, dist: %.1f, radius: %.1f, hit: %s" % [hint_screen_pos, dist_to_hint, screen_radius, dist_to_hint <= screen_radius])
+			
 			if dist_to_hint <= screen_radius and dist_to_hint < closest_dist:
 				closest_dist = dist_to_hint
 				closest_enemy = enemy
 	
-	return closest_enemy## 2秒内从绿色渐变到红色，变红后触发游戏失败
+	return closest_enemy
+
+
+## 计算击杀得分
+## 规则：
+## - 如果射击提示没出来就杀死敌人 = 200分（快速击杀奖励）
+## - 如果射击提示已出来，距离中心越近得分越高，最多200分，最少50分
+## screen_pos: 屏幕坐标（鼠标位置）
+## cam: 用于投影的相机
+## enemy: 被击杀的敌人
+## 返回: 击杀得分
+func calculate_kill_score(screen_pos: Vector2, cam: Camera3D, enemy: Enemy) -> int:
+	if not cam or not enemy or not is_instance_valid(enemy):
+		return 100  # 默认分数
+	
+	# 查找该敌人对应的射击提示
+	var hint: Node3D = null
+	for h in shooting_hints:
+		if is_instance_valid(h) and hint_to_enemy.get(h) == enemy:
+			hint = h
+			break
+	
+	# 如果没有射击提示（快速击杀），给予最高分数200分
+	if hint == null:
+		return 200
+	
+	# 射击提示已存在，根据距离中心计算分数
+	var viewport_size := cam.get_viewport().get_visible_rect().size
+	var hint_world_pos: Vector3 = hint.global_position
+	
+	# 检查是否在相机前方
+	if cam.is_position_behind(hint_world_pos):
+		return 100  # 后方敌人默认分数
+	
+	# 投影到屏幕坐标
+	var hint_screen_pos := cam.unproject_position(hint_world_pos)
+	
+	# 计算屏幕上的击中距离
+	var dist_to_center := screen_pos.distance_to(hint_screen_pos)
+	
+	# 计算判定半径（与 check_shooting_hint_hit 保持一致）
+	var distance_to_cam := cam.global_position.distance_to(hint_world_pos)
+	var world_radius: float = 0.32 * hint.scale.x
+	var fov_rad := deg_to_rad(cam.fov)
+	var projected_radius: float = (world_radius / maxf(distance_to_cam, 0.1)) * (viewport_size.y * 0.5) / tan(fov_rad * 0.5)
+	var screen_radius: float = projected_radius * 2.5
+	screen_radius = clampf(screen_radius, 80.0, 300.0)
+	
+	# 计算分数：距离越近分数越高
+	# 中心 = 200分，边缘 = 50分
+	var distance_ratio := clampf(dist_to_center / screen_radius, 0.0, 1.0)
+	var score := int(lerpf(200.0, 50.0, distance_ratio))
+	
+	return score
+
+
+## 2秒内从绿色渐变到红色，变红后触发游戏失败
 func _animate_hint_color(hint: Node3D, enemy: Enemy) -> void:
 	if not hint is Sprite3D:
 		return
@@ -506,8 +597,12 @@ func _on_enemy_died() -> void:
 			player.disable_control()
 			player.reset_view()
 		
-		# 移动到路径点3
-		await get_tree().create_timer(1.0).timeout
+		# 延迟0.5秒后播放房间通关音效
+		await get_tree().create_timer(0.5).timeout
+		AudioManager.play_sfx("room_clear")
+		
+		# 再等待0.5秒后移动到路径点3
+		await get_tree().create_timer(0.5).timeout
 		if rail_system:
 			rail_system.continue_to_waypoint3()
 
@@ -1108,6 +1203,9 @@ func _on_restart_button_pressed() -> void:
 	
 	# 重新生成敌人并开始游戏
 	_respawn_enemies()
+	
+	# 重新开始播放BGM
+	AudioManager.start_bgm_loop()
 	
 	GameManager.set_state(GameManager.GameState.PLAYING)
 	# 开始从起点移动到路径点1

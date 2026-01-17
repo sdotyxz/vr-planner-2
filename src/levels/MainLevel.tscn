@@ -6,8 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://chud001" path="res://src/ui/HUD.tscn" id="6_hud"]
 [ext_resource type="PackedScene" uid="uid://cdoor001" path="res://src/entities/Door.tscn" id="7_door"]
 [ext_resource type="PackedScene" uid="uid://c7prltiv3gva" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Door_Frame.fbx" id="7_sndxx"]
-[ext_resource type="Script" uid="uid://dqtv5n3jnwtsg" path="res://src/systems/SpawnArea.gd" id="8_spawn_area"]
-[ext_resource type="Texture2D" uid="uid://dtitle001" path="res://assets/title.png" id="9_title"]
+[ext_resource type="Script" path="res://src/systems/SpawnArea.gd" id="8_spawn_area"]
+[ext_resource type="Texture2D" uid="uid://bv00anxmxrv63" path="res://assets/title.png" id="9_title"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sndxx"]
 sky_top_color = Color(1, 1, 1, 1)
@@ -165,7 +165,10 @@ stretch_mode = 6
 
 [node name="HUD" parent="UI" instance=ExtResource("6_hud")]
 visible = false
-crosshair_size = 100.0
+crosshair_size = 128.0
+crosshair_outer_size = 128.0
+recoil_scale = 2.0
+recoil_duration = 0.2
 
 [node name="StartUI" type="Control" parent="UI"]
 layout_mode = 3

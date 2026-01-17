@@ -141,11 +141,15 @@ func _shoot() -> void:
 	# 屏幕抖动（使用射击专用的较弱抖动）
 	shake_camera(shoot_shake_intensity, shoot_shake_duration)
 	
+	# 准心后坐力动画
+	var hud = get_tree().get_first_node_in_group("hud") as HUD
+	if hud and hud.has_method("play_recoil"):
+		hud.play_recoil()
+	
 	# 射线检测 - 使用鼠标位置而不是屏幕中心
 	var space_state := get_world_3d().direct_space_state
 	
 	# 获取HUD的鼠标位置
-	var hud = get_tree().get_first_node_in_group("hud")
 	var mouse_pos: Vector2
 	if hud and "mouse_position" in hud:
 		mouse_pos = hud.mouse_position
@@ -191,8 +195,21 @@ func _shoot() -> void:
 func _hit_enemy(enemy: Node3D, point: Vector3, normal: Vector3) -> void:
 	AudioManager.play_sfx("hit")
 	
-	# 计算分数：基础100分，带有人质的敌人额外+50分
+	# 获取鼠标位置用于计算分数
+	var hud = get_tree().get_first_node_in_group("hud")
+	var mouse_pos: Vector2
+	if hud and "mouse_position" in hud:
+		mouse_pos = hud.mouse_position
+	else:
+		mouse_pos = get_viewport().get_visible_rect().size / 2
+	
+	# 计算基础击杀分数（基于射击提示和精度）
 	var base_score := 100
+	var main_level = get_tree().get_first_node_in_group("main_level") as MainLevel
+	if main_level and main_level.has_method("calculate_kill_score") and enemy is Enemy:
+		base_score = main_level.calculate_kill_score(mouse_pos, camera, enemy as Enemy)
+	
+	# 带有人质的敌人额外+50分
 	var bonus_score := 0
 	if enemy is Enemy and enemy.has_linked_hostage:
 		bonus_score = 50

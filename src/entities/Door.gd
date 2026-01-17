@@ -17,6 +17,9 @@ func open() -> void:
 		return
 	is_open = true
 	
+	# 播放破门音效（音量调大）
+	AudioManager.play_sfx("door_kick", 20.0)
+	
 	# 触发相机抖动效果
 	var player = get_tree().get_first_node_in_group("player")
 	if player and player.has_method("shake_camera"):

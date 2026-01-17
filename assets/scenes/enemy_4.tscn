@@ -8,3 +8,6 @@ transform = Transform3D(1.8190385, 0, -0.8313236, 0, 2, 0, 0.8313236, 0, 1.81903
 
 [node name="1_material_4" parent="." index="0"]
 surface_material_override/0 = ExtResource("2_4dp1v")
+
+[node name="HeadAnchor" type="Marker3D" parent="." index="1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5327996, 0)

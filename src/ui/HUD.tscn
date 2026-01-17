@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://chud001"]
+[gd_scene load_steps=4 format=3 uid="uid://chud001"]
 
 [ext_resource type="Script" uid="uid://dumlpnf0xkg1i" path="res://src/ui/HUD.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://bxkcsapyx6hnr" path="res://assets/crosshair/crosshair087.png" id="2_crosshair"]
+[ext_resource type="Texture2D" path="res://assets/crosshair/crosshair001.png" id="2_crosshair_inner"]
+[ext_resource type="Texture2D" path="res://assets/crosshair/crosshair007.png" id="3_crosshair_outer"]
 
 [node name="HUD" type="Control"]
 layout_mode = 3
@@ -22,8 +23,14 @@ offset_right = 32.0
 offset_bottom = 32.0
 mouse_filter = 2
 
-[node name="CrosshairSprite" type="TextureRect" parent="Crosshair"]
+[node name="CrosshairOuter" type="TextureRect" parent="Crosshair"]
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("2_crosshair")
+texture = ExtResource("3_crosshair_outer")
+stretch_mode = 5
+
+[node name="CrosshairInner" type="TextureRect" parent="Crosshair"]
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("2_crosshair_inner")
 stretch_mode = 5

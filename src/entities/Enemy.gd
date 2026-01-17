@@ -7,6 +7,9 @@ signal died
 ## 是否有关联的人质（击杀后救出人质，额外加分）
 var has_linked_hostage: bool = false
 
+## 头部锚点引用（用于射击提示定位）
+var head_anchor: Marker3D = null
+
 ## 敌人模型场景列表
 const ENEMY_MODELS: Array[String] = [
 	"res://assets/scenes/enemy_1.tscn",
@@ -40,6 +43,9 @@ func _randomize_model() -> void:
 		if model_scene:
 			model_instance = model_scene.instantiate()
 			add_child(model_instance)
+			
+			# 获取头部锚点引用
+			head_anchor = model_instance.get_node_or_null("HeadAnchor") as Marker3D
 			
 			# 从mesh自动生成碰撞形状
 			_create_collision_from_mesh(model_instance)
@@ -83,8 +89,20 @@ func _get_global_transform_relative_to(node: Node3D, relative_to: Node3D) -> Tra
 	return relative_to.global_transform.affine_inverse() * node.global_transform
 
 
+## 获取头部锚点的世界坐标
+## 如果没有头部锚点，返回默认位置（敌人位置 + 默认高度偏移）
+func get_head_position() -> Vector3:
+	if head_anchor and is_instance_valid(head_anchor):
+		return head_anchor.global_position
+	# 默认回退：使用固定偏移（胸部位置）
+	return global_position + Vector3(0, 1.2, 0)
+
+
 func die() -> void:
 	died.emit()
+	
+	# 播放死亡音效
+	AudioManager.play_sfx_3d("enemy_die", global_position, -5.0)
 	
 	# 生成模型破碎效果 - 高速向前飞散
 	if model_instance:
