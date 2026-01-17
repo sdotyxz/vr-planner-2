@@ -70,6 +70,12 @@ enemy_spawn_area_path = NodePath("SpawnAreas/EnemySpawnArea")
 hostage_spawn_area_path = NodePath("SpawnAreas/HostageSpawnArea")
 door_avoid_area_path = NodePath("SpawnAreas/DoorAvoidArea")
 
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.8660254, -0.25000003, 0.43301275, 0, 0.8660254, 0.5, -0.50000006, 0.4330127, -0.75, 0, 0, 0)
+light_color = Color(0.6337955, 0.33748657, 0.14305249, 1)
+shadow_enabled = true
+directional_shadow_max_distance = 1142.0
+
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_01kqf")
 
