@@ -10,7 +10,104 @@ const HOSTAGE_MODELS: Array[String] = [
 	"res://assets/scenes/hostage_2.tscn",
 ]
 
+## 开门时的对话台词
+const BREACH_DIALOGUES: Array[String] = [
+	# 通用/程序相关
+	"救命啊！",
+	"别误伤我！",
+	"保护年终奖！",
+	"又要加班了！",
+	"Bug太多了！",
+	"编译不过！",
+	"代码要回滚！",
+	"空指针！",
+	"内存泄漏！",
+	"线上要爆炸！",
+	# 策划相关
+	"数值又要改！",
+	"表格配错了！",
+	"流程图呢！",
+	"原型还没画！",
+	"玩法要重做！",
+	"关卡要调整！",
+	"平衡性崩了！",
+	"体验不对！",
+	"节奏太慢了！",
+	"难度太高了！",
+	# 美术相关
+	"贴图还没画！",
+	"模型穿帮了！",
+	"动画卡住了！",
+	"颜色不对！",
+	"风格要统一！",
+	"分辨率太低！",
+	"UV炸了！",
+	"法线反了！",
+	"骨骼断了！",
+	"特效太卡了！",
+	# PM相关
+	"排期又变了！",
+	"需求没对齐！",
+	"会议要开始！",
+	"进度落后了！",
+	"资源不够！",
+	"风险预警！",
+	"依赖卡住了！",
+	"优先级变了！",
+	"老板要汇报！",
+	"版本延期了！",
+]
+
+## 被救出时的对话台词
+const RESCUED_DIALOGUES: Array[String] = [
+	# 通用/程序相关
+	"谢谢！",
+	"终于安全了！",
+	"Build Success!",
+	"下班咯！",
+	"代码没丢！",
+	"年终奖有救了！",
+	"测试通过！",
+	"没有Bug！",
+	"完美运行！",
+	"全绿通过！",
+	# 策划相关
+	"数值平衡了！",
+	"玩法成型了！",
+	"体验优化好了！",
+	"流程跑通了！",
+	"关卡设计完成！",
+	"文档写完了！",
+	"表格配好了！",
+	"原型通过了！",
+	"评审过了！",
+	"方案确定了！",
+	# 美术相关
+	"贴图画完了！",
+	"模型做好了！",
+	"动画流畅了！",
+	"配色完美！",
+	"风格统一了！",
+	"特效炸裂！",
+	"渲染完成！",
+	"效果拉满！",
+	"视觉震撼！",
+	"美术过审了！",
+	# PM相关
+	"排期搞定了！",
+	"需求对齐了！",
+	"会议结束了！",
+	"进度追上了！",
+	"资源到位了！",
+	"风险解除！",
+	"依赖解决了！",
+	"优先级确定！",
+	"汇报通过了！",
+	"准时发版！",
+]
+
 var model_instance: Node3D = null
+var head_anchor: Marker3D = null
 
 
 func _ready() -> void:
@@ -30,6 +127,9 @@ func _randomize_model() -> void:
 		if model_scene:
 			model_instance = model_scene.instantiate()
 			add_child(model_instance)
+			
+			# 获取头顶锚点
+			head_anchor = model_instance.get_node_or_null("HeadAnchor") as Marker3D
 			
 			# 从mesh自动生成碰撞形状
 			_create_collision_from_mesh(model_instance)
@@ -100,3 +200,25 @@ func _apply_material_to_node(node: Node, material: Material) -> void:
 	
 	for child in node.get_children():
 		_apply_material_to_node(child, material)
+
+
+## 获取头顶位置（用于生成对话气泡）
+func get_head_position() -> Vector3:
+	if head_anchor and is_instance_valid(head_anchor):
+		return head_anchor.global_position
+	# 回退：固定偏移
+	return global_position + Vector3(0, 1.8, 0)
+
+
+## 显示开门时的对话（红色 - 求救）
+func show_breach_dialogue() -> void:
+	if BREACH_DIALOGUES.size() > 0:
+		var random_text := BREACH_DIALOGUES[randi() % BREACH_DIALOGUES.size()]
+		VFXManager.spawn_dialogue_popup(get_head_position(), random_text, Color(1.0, 0.3, 0.3, 1.0))
+
+
+## 显示被救出时的对话（绿色 - 救出）
+func show_rescued_dialogue() -> void:
+	if RESCUED_DIALOGUES.size() > 0:
+		var random_text := RESCUED_DIALOGUES[randi() % RESCUED_DIALOGUES.size()]
+		VFXManager.spawn_dialogue_popup(get_head_position(), random_text, Color(0.3, 1.0, 0.4, 1.0))

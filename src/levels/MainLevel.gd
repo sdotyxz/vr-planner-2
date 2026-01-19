@@ -297,8 +297,8 @@ func _on_door_ready_to_open() -> void:
 
 
 func _on_front_door_opened() -> void:
-	# 门打开完成（如果需要特殊处理）
-	pass
+	# 门打开完成，让所有人质说话（错开显示）
+	_show_hostage_breach_dialogues()
 
 
 func _on_passed_door() -> void:
@@ -656,11 +656,26 @@ func _on_hostage_died() -> void:
 ## 关联的敌人被击杀时，人质也消失（被救出）
 func _on_linked_enemy_died(hostage: Hostage) -> void:
 	if is_instance_valid(hostage):
-		# 人质被救出：变成绿色安全材质，0.5秒后消失
+		# 人质被救出：显示救出对话
+		hostage.show_rescued_dialogue()
+		# 变成绿色安全材质，0.5秒后消失
 		hostage.set_safe_material()
 		await get_tree().create_timer(0.5).timeout
 		if is_instance_valid(hostage):
 			hostage.queue_free()
+
+
+## 开门时让所有人质说话（错开显示，间隔0.25秒）
+func _show_hostage_breach_dialogues() -> void:
+	var hostages := get_tree().get_nodes_in_group("hostage")
+	for i in hostages.size():
+		var hostage := hostages[i] as Hostage
+		if is_instance_valid(hostage):
+			# 错开显示：每个人质间隔0.25秒
+			if i > 0:
+				await get_tree().create_timer(0.25).timeout
+			if is_instance_valid(hostage):
+				hostage.show_breach_dialogue()
 
 
 func _teleport_and_restart() -> void:

@@ -3,6 +3,7 @@ extends Node
 
 var vfx_library: Dictionary = {}
 var score_popup_scene: PackedScene = null
+var dialogue_popup_scene: PackedScene = null
 
 
 func _ready() -> void:
@@ -12,6 +13,9 @@ func _ready() -> void:
 	
 	# 预加载得分弹窗场景
 	score_popup_scene = load("res://assets/vfx/ScorePopup.tscn")
+	
+	# 预加载对话弹窗场景
+	dialogue_popup_scene = load("res://assets/vfx/DialoguePopup.tscn")
 
 
 func spawn_vfx(vfx_name: String, pos: Vector3, normal: Vector3 = Vector3.UP) -> void:
@@ -46,3 +50,21 @@ func spawn_score_popup(pos: Vector3, score: int) -> void:
 	# 设置分数
 	if popup.has_method("set_score"):
 		popup.set_score(score)
+
+
+## 生成3D浮动对话弹窗
+func spawn_dialogue_popup(pos: Vector3, text: String, color: Color = Color.GREEN) -> void:
+	if not dialogue_popup_scene:
+		return
+	
+	var popup: Node3D = dialogue_popup_scene.instantiate()
+	get_tree().root.add_child(popup)
+	popup.global_position = pos
+	
+	# 设置对话文本
+	if popup.has_method("set_text"):
+		popup.set_text(text)
+	
+	# 设置颜色
+	if popup.has_method("set_color"):
+		popup.set_color(color)

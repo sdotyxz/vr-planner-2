@@ -1,0 +1,23 @@
+[gd_scene load_steps=5 format=3 uid="uid://peq7g6by7myr"]
+
+[ext_resource type="Script" uid="uid://xypeonvke5y2" path="res://assets/vfx/DialoguePopup.gd" id="1_script"]
+[ext_resource type="FontFile" uid="uid://2rjape1he4y4" path="res://assets/Kenney Future Narrow.ttf" id="2_font"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_green"]
+shading_mode = 0
+albedo_color = Color(0.2, 1, 0.4, 1)
+
+[sub_resource type="TextMesh" id="TextMesh_dialogue"]
+text = "救命啊"
+font = ExtResource("2_font")
+font_size = 64
+pixel_size = 0.008
+
+[node name="DialoguePopup" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="TextMeshInstance" type="MeshInstance3D" parent="."]
+material_override = SubResource("StandardMaterial3D_green")
+cast_shadow = 0
+gi_mode = 0
+mesh = SubResource("TextMesh_dialogue")
