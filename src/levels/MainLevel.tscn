@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://chud001" path="res://src/ui/HUD.tscn" id="6_hud"]
 [ext_resource type="PackedScene" uid="uid://cdoor001" path="res://src/entities/Door.tscn" id="7_door"]
 [ext_resource type="PackedScene" uid="uid://c7prltiv3gva" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Door_Frame.fbx" id="7_sndxx"]
-[ext_resource type="Script" path="res://src/systems/SpawnArea.gd" id="8_spawn_area"]
+[ext_resource type="Script" uid="uid://dqtv5n3jnwtsg" path="res://src/systems/SpawnArea.gd" id="8_spawn_area"]
 [ext_resource type="Texture2D" uid="uid://bv00anxmxrv63" path="res://assets/title.png" id="9_title"]
 [ext_resource type="Shader" uid="uid://sfjbh4logtef" path="res://Shaders/glitch_postprocess.gdshader" id="10_glitch"]
 [ext_resource type="FontFile" uid="uid://2rjape1he4y4" path="res://assets/Kenney Future Narrow.ttf" id="11_font"]

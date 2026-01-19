@@ -199,6 +199,13 @@ func get_hint_time(base_time: float, current_room: int) -> float:
 	return base_time
 
 
+## 获取当前关卡的射击提示间隔时间
+func get_hint_interval(base_interval: float, current_room: int) -> float:
+	if difficulty_curves:
+		return difficulty_curves.get_hint_interval(base_interval, current_room)
+	return base_interval
+
+
 ## 内部方法：按类型获取SpawnPoints
 func _get_spawn_points_by_type(spawn_type: SpawnPoint.SpawnType) -> Array[SpawnPoint]:
 	var result: Array[SpawnPoint] = []

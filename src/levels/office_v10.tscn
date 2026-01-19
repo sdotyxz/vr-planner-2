@@ -226,6 +226,48 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, 2)
 [node name="EnemySpawn_6" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 2.5)
 
+[node name="EnemySpawn_7" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 3)
+
+[node name="EnemySpawn_8" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 3)
+
+[node name="EnemySpawn_9" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 4)
+
+[node name="EnemySpawn_10" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 4)
+
+[node name="EnemySpawn_11" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3)
+
+[node name="EnemySpawn_12" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 0)
+
+[node name="EnemySpawn_13" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 0)
+
+[node name="EnemySpawn_14" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, -3)
+
+[node name="EnemySpawn_15" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -3)
+
+[node name="EnemySpawn_16" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5)
+
+[node name="EnemySpawn_17" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 5)
+
+[node name="EnemySpawn_18" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 5)
+
+[node name="EnemySpawn_19" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 0, -4)
+
+[node name="EnemySpawn_20" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, -4)
+
 [node name="HostageSpawn_1" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 0)
 spawn_type = 1
@@ -236,4 +278,8 @@ spawn_type = 1
 
 [node name="HostageSpawn_3" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -1.5)
+spawn_type = 1
+
+[node name="HostageSpawn_4" parent="SpawnPoints" instance=ExtResource("29_spawnpoint_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 2)
 spawn_type = 1

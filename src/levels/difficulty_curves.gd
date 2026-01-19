@@ -12,6 +12,9 @@ class_name DifficultyCurves
 ## 射击提示时间曲线：关卡越高，提示消失越快（乘数越小）
 @export var hint_time_curve: Curve
 
+## 射击提示间隔曲线：关卡越高，敌人提示出现间隔越短（乘数越小）
+@export var hint_interval_curve: Curve
+
 ## 计算难度进度（0.0 - 1.0）
 ## max_room: 达到满难度的关卡数
 static func calculate_progress(current_room: int, max_room: int = 20) -> float:
@@ -42,26 +45,41 @@ func get_hint_time(base_time: float, current_room: int, max_room: int = 20) -> f
 	return base_time * hint_time_curve.sample(progress)
 
 
-## 创建默认曲线配置
+## 获取当前关卡的射击提示间隔时间（最小值0.2秒）
+func get_hint_interval(base_interval: float, current_room: int, max_room: int = 20) -> float:
+	if not hint_interval_curve:
+		return base_interval
+	var progress := calculate_progress(current_room, max_room)
+	var interval := base_interval * hint_interval_curve.sample(progress)
+	return maxf(interval, 0.2)  # 最小间隔0.2秒，避免过于密集
+
+
+## 创建默认曲线配置（指数曲线形状，整体提升约75%难度，12关满难度）
 static func create_default() -> DifficultyCurves:
 	var curves := DifficultyCurves.new()
 	
-	# 敌人曲线：1.0 -> 1.5 -> 2.5
+	# 敌人曲线：1.9 -> 3.2 -> 5.0（指数曲线，再提升25%）
 	curves.enemy_curve = Curve.new()
-	curves.enemy_curve.add_point(Vector2(0.0, 1.0))   # 第1关：1.0倍
-	curves.enemy_curve.add_point(Vector2(0.5, 1.5))   # 中期：1.5倍
-	curves.enemy_curve.add_point(Vector2(1.0, 2.5))   # 后期：2.5倍
+	curves.enemy_curve.add_point(Vector2(0.0, 1.9))   # 第1关：1.9倍
+	curves.enemy_curve.add_point(Vector2(0.5, 3.2))   # 中期：3.2倍
+	curves.enemy_curve.add_point(Vector2(1.0, 5.0))   # 后期：5.0倍
 	
-	# 人质曲线：1.0 -> 1.5 -> 2.0
+	# 人质曲线：1.75 -> 2.75 -> 3.75（指数曲线，再提升25%）
 	curves.hostage_curve = Curve.new()
-	curves.hostage_curve.add_point(Vector2(0.0, 1.0))  # 第1关：1.0倍
-	curves.hostage_curve.add_point(Vector2(0.5, 1.5))  # 中期：1.5倍
-	curves.hostage_curve.add_point(Vector2(1.0, 2.0))  # 后期：2.0倍
+	curves.hostage_curve.add_point(Vector2(0.0, 1.75))  # 第1关：1.75倍
+	curves.hostage_curve.add_point(Vector2(0.5, 2.75))  # 中期：2.75倍
+	curves.hostage_curve.add_point(Vector2(1.0, 3.75))  # 后期：3.75倍
 	
-	# 射击提示时间曲线：1.0 -> 0.7 -> 0.4（越来越快消失）
+	# 射击提示时间曲线：0.7 -> 0.35 -> 0.2（越来越快消失，再压缩20%）
 	curves.hint_time_curve = Curve.new()
-	curves.hint_time_curve.add_point(Vector2(0.0, 1.0))  # 第1关：1.0倍
-	curves.hint_time_curve.add_point(Vector2(0.5, 0.7))  # 中期：0.7倍
-	curves.hint_time_curve.add_point(Vector2(1.0, 0.4))  # 后期：0.4倍
+	curves.hint_time_curve.add_point(Vector2(0.0, 0.7))   # 第1关：0.7倍（2.1秒）
+	curves.hint_time_curve.add_point(Vector2(0.5, 0.35))  # 中期：0.35倍（1.05秒）
+	curves.hint_time_curve.add_point(Vector2(1.0, 0.2))   # 后期：0.2倍（0.6秒）
+	
+	# 射击提示间隔曲线：0.65 -> 0.28 -> 0.12（越来越快出现，再压缩20%）
+	curves.hint_interval_curve = Curve.new()
+	curves.hint_interval_curve.add_point(Vector2(0.0, 0.65))  # 第1关：0.65倍（间隔0.65秒）
+	curves.hint_interval_curve.add_point(Vector2(0.5, 0.28))  # 中期：0.28倍（间隔0.28秒）
+	curves.hint_interval_curve.add_point(Vector2(1.0, 0.12))  # 后期：0.12倍（间隔0.2秒，受最小值限制）
 	
 	return curves

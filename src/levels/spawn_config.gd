@@ -12,5 +12,8 @@ class_name SpawnConfig
 ## 基础射击提示时间（秒）
 @export var base_hint_time: float = 3.0
 
-## 达到满难度的关卡数
-@export var max_difficulty_room: int = 20
+## 基础射击提示间隔（秒）- 敌人提示出现的时间间隔
+@export var base_hint_interval: float = 1.0
+
+## 达到满难度的关卡数（减小可加快难度爆发）
+@export var max_difficulty_room: int = 12

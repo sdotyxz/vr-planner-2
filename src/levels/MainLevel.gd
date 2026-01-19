@@ -47,6 +47,7 @@ var office_scene_manager: OfficeSceneManager = null
 @export var base_enemy_count: int = 4  ## 第一关敌人数量
 @export var base_hostage_count: int = 1  ## 第一关人质数量
 @export var base_hint_time: float = 3.0  ## 基础射击提示时间（秒）
+@export var base_hint_interval: float = 1.0  ## 基础射击提示间隔（秒）
 
 ## 生成区域节点配置（通过场景中的节点定义区域）- 保留用于后备
 @export_group("Spawn Areas (Legacy)")
@@ -362,9 +363,12 @@ func _spawn_shooting_hints() -> void:
 		if not _spawning_hints:
 			return
 		
-		# 等待随机间隔（0.5到1秒）
+	# 等待随机间隔（根据难度曲线动态调整）
 		if i > 0:
-			var delay := randf_range(0.5, 1.0)
+			var hint_interval := base_hint_interval
+			if office_scene_manager:
+				hint_interval = office_scene_manager.get_hint_interval(base_hint_interval, current_room)
+			var delay := randf_range(hint_interval * 0.5, hint_interval)
 			await get_tree().create_timer(delay).timeout
 			
 			# 再次检查，因为wait之后可能已经停止
@@ -397,12 +401,17 @@ func _spawn_shooting_hints() -> void:
 		# 初始缩放为2倍
 		hint.scale = Vector3(2.0, 2.0, 2.0)
 		
-		# 创建缩放动画：从2倍缩放到1倍，持续2秒
-		var tween := create_tween()
-		tween.tween_property(hint, "scale", Vector3(1.0, 1.0, 1.0), 2.0).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+		# 获取当前关卡的提示时间
+		var hint_time := base_hint_time
+		if office_scene_manager:
+			hint_time = office_scene_manager.get_hint_time(base_hint_time, current_room)
 		
-		# 2秒内从绿色渐变到红色，变红后触发游戏失败
-		_animate_hint_color(hint, enemy)
+		# 创建缩放动画：从2倍缩放到1倍，持续时间根据难度动态调整
+		var tween := create_tween()
+		tween.tween_property(hint, "scale", Vector3(1.0, 1.0, 1.0), hint_time).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+		
+		# 从绿色渐变到红色，变红后触发游戏失败
+		_animate_hint_color(hint, enemy, hint_time)
 		
 		# 连接敌人死亡信号，敌人死亡时移除对应的射击提示
 		if not enemy.died.is_connected(_on_enemy_died_remove_hint.bind(hint)):
@@ -567,8 +576,8 @@ func calculate_kill_score(screen_pos: Vector2, cam: Camera3D, enemy: Enemy) -> i
 	return score
 
 
-## 2秒内从绿色渐变到红色，变红后触发游戏失败
-func _animate_hint_color(hint: Node3D, enemy: Enemy) -> void:
+## 从绿色渐变到红色，变红后触发游戏失败
+func _animate_hint_color(hint: Node3D, enemy: Enemy, hint_time: float = 2.0) -> void:
 	if not hint is Sprite3D:
 		return
 	
@@ -578,12 +587,12 @@ func _animate_hint_color(hint: Node3D, enemy: Enemy) -> void:
 	
 	var mat := sprite.material_override as StandardMaterial3D
 	
-	# 创建颜色渐变动画：2秒内从绿色变红色
+	# 创建颜色渐变动画：根据难度动态调整时间，从绿色变红色
 	var color_tween := create_tween()
-	color_tween.tween_property(mat, "albedo_color", Color(1.0, 0.3, 0.3, 0.9), 2.0).set_ease(Tween.EASE_IN)
+	color_tween.tween_property(mat, "albedo_color", Color(1.0, 0.3, 0.3, 0.9), hint_time).set_ease(Tween.EASE_IN)
 	
-	# 2秒后检查并触发游戏失败
-	await get_tree().create_timer(2.0).timeout
+	# 时间到后检查并触发游戏失败
+	await get_tree().create_timer(hint_time).timeout
 	
 	# 检查提示和敌人是否都还有效
 	if not is_instance_valid(hint) or not is_instance_valid(enemy):
