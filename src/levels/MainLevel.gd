@@ -319,7 +319,10 @@ func _on_reached_waypoint2() -> void:
 
 
 func _on_reached_waypoint3() -> void:
-	# 到达路径点3，准备传送回路径点1
+	# 到达路径点3，禁用玩家控制并准备传送回路径点1
+	if player:
+		player.disable_control()
+	
 	await get_tree().create_timer(0.5).timeout
 	_teleport_and_restart()
 
@@ -633,16 +636,15 @@ func _on_enemy_died() -> void:
 	if enemies_alive <= 0:
 		# 所有敌人被消灭，移动到路径点3
 		
-		# 禁用玩家控制
+		# 重置玩家视角（但保持射击能力，让玩家可以继续破坏家具）
 		if player:
-			player.disable_control()
 			player.reset_view()
 		
 		# 延迟0.5秒后播放房间通关音效
 		await get_tree().create_timer(0.5).timeout
 		AudioManager.play_sfx("room_clear")
 		
-		# 再等待0.5秒后移动到路径点3
+		# 再等待0.5秒后移动到路径点3（移动过程中仍可射击）
 		await get_tree().create_timer(0.5).timeout
 		if rail_system:
 			rail_system.continue_to_waypoint3()

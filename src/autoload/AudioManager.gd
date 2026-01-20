@@ -91,6 +91,18 @@ func _preload_sound_effects() -> void:
 		load("res://assets/sfx/reload/Exaggerated_cinemati_#4-1768632618946.mp3"),
 	]
 	
+	# 家具破坏音效（随机）
+	sfx_library_array["furniture_break"] = [
+		load("res://assets/sfx/furniture_break/A_heavy_wooden_chair_#1-1768876130176.mp3"),
+		load("res://assets/sfx/furniture_break/A_heavy_wooden_chair_#2-1768876130177.mp3"),
+		load("res://assets/sfx/furniture_break/A_heavy_wooden_chair_#3-1768876176616.mp3"),
+		load("res://assets/sfx/furniture_break/A_heavy_wooden_chair_#4-1768876176617.mp3"),
+		load("res://assets/sfx/furniture_break/A_heavy_wooden_chair_#1-1768876247828.mp3"),
+		load("res://assets/sfx/furniture_break/A_heavy_wooden_chair_#2-1768876247828.mp3"),
+		load("res://assets/sfx/furniture_break/A_heavy_wooden_chair_#3-1768876247829.mp3"),
+		load("res://assets/sfx/furniture_break/A_heavy_wooden_chair_#4-1768876247830.mp3"),
+	]
+	
 	# 开始游戏音效
 	sfx_library["game_start"] = load("res://assets/sfx/start/Heavy_military_equip_#1-1768633177894.mp3")
 

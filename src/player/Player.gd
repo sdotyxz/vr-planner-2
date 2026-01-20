@@ -190,6 +190,8 @@ func _shoot() -> void:
 		_hit_enemy(collider, hit_point, hit_normal)
 	elif collider.is_in_group("hostage"):
 		_hit_hostage(collider)
+	elif collider.is_in_group("destructible"):
+		_hit_destructible(collider, hit_point)
 
 
 func _hit_enemy(enemy: Node3D, _point: Vector3, _normal: Vector3) -> void:
@@ -232,6 +234,12 @@ func _hit_hostage(hostage: Node3D) -> void:
 	
 	if hostage.has_method("hit"):
 		hostage.hit()
+
+
+## 命中可破坏家具
+func _hit_destructible(furniture: Node3D, _hit_point: Vector3) -> void:
+	if furniture.has_method("destroy"):
+		furniture.destroy()
 
 
 ## 相机抖动效果

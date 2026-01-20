@@ -2,6 +2,9 @@ extends Node
 class_name OfficeSceneManager
 ## Office场景管理器 - 负责随机加载不同的Office场景并提取SpawnPoints
 
+## 预加载家具转换器脚本
+const FurnitureConverterScript = preload("res://src/systems/FurnitureConverter.gd")
+
 ## Office场景路径列表 (所有场景，用于预加载)
 const OFFICE_SCENES: Array[String] = [
 	"res://src/levels/office_v3.tscn",
@@ -98,6 +101,9 @@ func load_random_office(parent: Node3D) -> Node3D:
 	current_office_scene = scene_resource.instantiate() as Node3D
 	parent.add_child(current_office_scene)
 	
+	# 将家具转换为可破坏对象
+	FurnitureConverterScript.convert_scene(current_office_scene)
+	
 	print("[OfficeSceneManager] Loaded office scene: ", scene_path)
 	return current_office_scene
 
@@ -137,6 +143,9 @@ func load_office_by_difficulty(parent: Node3D, current_room: int) -> Node3D:
 	
 	current_office_scene = scene_resource.instantiate() as Node3D
 	parent.add_child(current_office_scene)
+	
+	# 将家具转换为可破坏对象
+	FurnitureConverterScript.convert_scene(current_office_scene)
 	
 	print("[OfficeSceneManager] Loaded office scene (difficulty: %s, room: %d): %s" % [group_key, current_room, scene_path])
 	return current_office_scene
