@@ -14,12 +14,16 @@ const SCALE_PEAK: float = 1.1  ## 峰值缩放
 ## 颜色材质
 var material: StandardMaterial3D
 
+## 持久模式 - 不自动消失，需要手动调用 dismiss()
+var persistent: bool = false
+
 
 func _ready() -> void:
 	_ensure_resources()
 	# 延迟一帧后开始动画，确保 global_position 已被正确设置
 	await get_tree().process_frame
-	_animate()
+	if not persistent:
+		_animate()
 
 
 ## 设置对话文本
@@ -97,3 +101,16 @@ func _animate() -> void:
 	
 	# 动画结束后销毁
 	tween.chain().tween_callback(queue_free)
+
+
+## 手动关闭弹窗（用于持久模式）
+func dismiss() -> void:
+	if not is_inside_tree():
+		return
+	
+	# 创建淡出动画
+	var tween := create_tween()
+	if material:
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		tween.tween_property(material, "albedo_color:a", 0.0, 0.3).set_ease(Tween.EASE_IN)
+	tween.tween_callback(queue_free)

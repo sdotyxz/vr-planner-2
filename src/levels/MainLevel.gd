@@ -78,6 +78,28 @@ var hostage_count: int = 1  ## 人质数量（遗留代码兼容）
 ## 射击提示场景
 var shooting_hint_scene: PackedScene = preload("res://assets/vfx/ShootingHint.tscn")
 
+## 制作人名单（第5关起每道门显示一行）
+const CREDITS_LINES: Array[String] = [
+	"CREDITS",
+	"yuhaoyu",
+	"gracygao",
+	"lingfengchen",
+	"shengdontan",
+	"THANKS"
+]
+var _credits_index: int = 0  ## 当前显示到第几行制作人名单
+
+## 制作人图片（第2行和倒数第2行显示）
+const CREDITS_IMAGES: Array[String] = [
+	"res://assets/credit/credit_1.png",
+	"res://assets/credit/credit_2.png",
+	"res://assets/credit/credit_3.png",
+	"res://assets/credit/credit_4.png"
+]
+
+## 教程管理器
+var tutorial_manager: TutorialManager = null
+
 
 func _ready() -> void:
 	# 添加到 main_level 组，方便其他节点查找
@@ -86,6 +108,10 @@ func _ready() -> void:
 	# 初始化OfficeSceneManager
 	office_scene_manager = OfficeSceneManager.new()
 	add_child(office_scene_manager)
+	
+	# 初始化TutorialManager
+	tutorial_manager = TutorialManager.new()
+	add_child(tutorial_manager)
 	
 	# 确保office_container存在
 	if not office_container:
@@ -299,6 +325,48 @@ func _on_door_ready_to_open() -> void:
 func _on_front_door_opened() -> void:
 	# 门打开完成，让所有人质说话（错开显示）
 	_show_hostage_breach_dialogues()
+	
+	# 第16关踢门后清除最后的THANKS文字
+	if current_room == 16:
+		if front_door:
+			front_door.clear_credits_text()
+		if back_door:
+			back_door.clear_credits_text()
+	
+	# 第15关踢门后清除最后的制作人图片
+	if current_room == 15:
+		if front_door:
+			front_door.clear_credit_image()
+		if back_door:
+			back_door.clear_credit_image()
+	
+	# 第10关起显示制作人名单（前门和后门同时显示当前行）
+	if current_room > 9 and _credits_index < CREDITS_LINES.size():
+		var credits_text := CREDITS_LINES[_credits_index]
+		var current_index := _credits_index
+		_credits_index += 1
+		
+		if front_door:
+			front_door.set_credits_text(credits_text)
+		if back_door:
+			back_door.set_credits_text(credits_text)
+		
+		# 第11-14关（index 1-4）依次显示4张图片
+		if current_index >= 1 and current_index <= 4:
+			var image_index := current_index - 1  # index 1->0, 2->1, 3->2, 4->3
+			if image_index < CREDITS_IMAGES.size():
+				var texture := load(CREDITS_IMAGES[image_index]) as Texture2D
+				if texture:
+					if front_door:
+						front_door.set_credit_image(texture)
+					if back_door:
+						back_door.set_credit_image(texture)
+		else:
+			# 其他行清除图片
+			if front_door:
+				front_door.clear_credit_image()
+			if back_door:
+				back_door.clear_credit_image()
 
 
 func _on_passed_door() -> void:
@@ -316,6 +384,11 @@ func _on_reached_waypoint2() -> void:
 	# 启用玩家控制（可以开火和转视角）
 	if player:
 		player.enable_control()
+	
+	# 教程：前三关显示教程提示并等待玩家操作
+	if tutorial_manager and tutorial_manager.is_tutorial_room(current_room):
+		if player and player.camera:
+			await tutorial_manager.show_tutorial_and_wait(player.camera, current_room)
 
 
 func _on_reached_waypoint3() -> void:
@@ -658,8 +731,9 @@ func _on_hostage_died() -> void:
 ## 关联的敌人被击杀时，人质也消失（被救出）
 func _on_linked_enemy_died(hostage: Hostage) -> void:
 	if is_instance_valid(hostage):
-		# 人质被救出：显示救出对话
-		hostage.show_rescued_dialogue()
+		# 人质被救出：教程关卡不显示救出对话
+		if not (tutorial_manager and tutorial_manager.is_tutorial_room(current_room)):
+			hostage.show_rescued_dialogue()
 		# 变成绿色安全材质，0.5秒后消失
 		hostage.set_safe_material()
 		await get_tree().create_timer(0.5).timeout
@@ -669,6 +743,10 @@ func _on_linked_enemy_died(hostage: Hostage) -> void:
 
 ## 开门时让所有人质说话（错开显示，间隔0.25秒）
 func _show_hostage_breach_dialogues() -> void:
+	# 教程关卡人质不说话
+	if tutorial_manager and tutorial_manager.is_tutorial_room(current_room):
+		return
+	
 	var hostages := get_tree().get_nodes_in_group("hostage")
 	for i in hostages.size():
 		var hostage := hostages[i] as Hostage
@@ -695,6 +773,12 @@ func _teleport_and_restart() -> void:
 		var pivot := front_door.get_node_or_null("DoorPivot") as Node3D
 		if pivot:
 			pivot.rotation_degrees.x = 0
+		# 第10-16关保留文字（第16关踢门后才清除），其他关卡清除
+		if current_room <= 9 or current_room > 16:
+			front_door.clear_credits_text()
+		# 第11-15关保留图片（第15关踢门后才清除），其他关卡清除
+		if current_room <= 10 or current_room > 15:
+			front_door.clear_credit_image()
 	
 	# 重置后门
 	if back_door:
@@ -702,6 +786,12 @@ func _teleport_and_restart() -> void:
 		var pivot := back_door.get_node_or_null("DoorPivot") as Node3D
 		if pivot:
 			pivot.rotation_degrees.x = 0
+		# 第10-16关保留文字（第16关踢门后才清除），其他关卡清除
+		if current_room <= 9 or current_room > 16:
+			back_door.clear_credits_text()
+		# 第11-15关保留图片（第15关踢门后才清除），其他关卡清除
+		if current_room <= 10 or current_room > 15:
+			back_door.clear_credit_image()
 	
 	# 重新生成敌人
 	_respawn_enemies()

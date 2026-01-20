@@ -1,8 +1,19 @@
-[gd_scene load_steps=4 format=3 uid="uid://cdoor001"]
+[gd_scene load_steps=8 format=3 uid="uid://cdoor001"]
 
 [ext_resource type="Script" uid="uid://bcqpw4l3onpgj" path="res://src/entities/Door.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://durj2wguka8tt" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Door_1.fbx" id="2_uk17w"]
 [ext_resource type="PackedScene" uid="uid://dj3l2lydys2dt" path="res://assets/models/furniture/VNB Low Poly Office Set 2/Door_Handle_1.fbx" id="3_24o17"]
+[ext_resource type="FontFile" uid="uid://2rjape1he4y4" path="res://assets/Kenney Future Narrow.ttf" id="4_font"]
+[ext_resource type="Texture2D" uid="uid://dfakkipmm74dd" path="res://assets/credit/credit_4.png" id="5_eamrq"]
+
+[sub_resource type="TextMesh" id="TextMesh_credits"]
+text = "aaaaaaaaa"
+font = ExtResource("4_font")
+font_size = 8
+depth = 0.02
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_credits"]
+shading_mode = 0
 
 [node name="Door" type="Node3D"]
 script = ExtResource("1_script")
@@ -15,3 +26,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, 0)
 
 [node name="Door_Handle_1" parent="DoorPivot" instance=ExtResource("3_24o17")]
 transform = Transform3D(0.99831563, -0.058017053, 0, 0.050244253, 0.86456656, 0.49999994, -0.029008534, -0.49915776, 0.86602527, 0.4040786, 1.0983794, 0.06820202)
+
+[node name="CreditsText" type="MeshInstance3D" parent="DoorPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.020836592, 1.6031984, 0.08)
+visible = false
+mesh = SubResource("TextMesh_credits")
+surface_material_override/0 = SubResource("StandardMaterial3D_credits")
+
+[node name="CreditImage" type="Sprite3D" parent="DoorPivot"]
+transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0, 1.3968637, 0.046011418)
+visible = false
+texture = ExtResource("5_eamrq")

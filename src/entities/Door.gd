@@ -8,8 +8,36 @@ signal door_opened
 @export var fall_angle: float = 90.0  # 门倒下的角度
 
 @onready var door_pivot: Node3D = $DoorPivot
+@onready var credits_text: MeshInstance3D = $DoorPivot/CreditsText
+@onready var credit_image: Sprite3D = $DoorPivot/CreditImage
 
 var is_open: bool = false
+
+
+## 设置门上显示的制作人名单文字
+func set_credits_text(text: String) -> void:
+	if credits_text and credits_text.mesh is TextMesh:
+		var text_mesh := credits_text.mesh as TextMesh
+		text_mesh.text = text
+		credits_text.visible = text != ""
+
+
+## 清除门上的制作人名单文字
+func clear_credits_text() -> void:
+	set_credits_text("")
+
+
+## 设置门上显示的制作人图片
+func set_credit_image(texture: Texture2D) -> void:
+	if credit_image:
+		credit_image.texture = texture
+		credit_image.visible = texture != null
+
+
+## 清除门上的制作人图片
+func clear_credit_image() -> void:
+	if credit_image:
+		credit_image.visible = false
 
 
 func open() -> void:
